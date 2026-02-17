@@ -1,14 +1,14 @@
-// js/bim-system.js - نظام BIM الموحد والمبسط
+// js/bim-system.js - نظام BIM الموحد مع خطوط ثابتة
 
 const BIM = {
   viewer: null,
   currentScene: null,
   scenes: [],
   layers: {
-    EL: { visible: true, color: '#44ff44', dash: '8,8', name: 'كهرباء', icon: '⚡', points: [] },
-    PW: { visible: true, color: '#4444ff', dash: 'none', name: 'مياه', icon: '💧', points: [] },
-    GS: { visible: true, color: '#ff4444', dash: '4,4', name: 'غاز', icon: '🔥', points: [] },
-    AC: { visible: true, color: '#ffaa44', dash: '12,6', name: 'تكييف', icon: '❄️', points: [] }
+    EL: { visible: true, color: '#44ff44', dash: '8,8', name: 'كهرباء', icon: '⚡', points: [], lines: [] },
+    PW: { visible: true, color: '#4444ff', dash: 'none', name: 'مياه', icon: '💧', points: [], lines: [] },
+    GS: { visible: true, color: '#ff4444', dash: '4,4', name: 'غاز', icon: '🔥', points: [], lines: [] },
+    AC: { visible: true, color: '#ffaa44', dash: '12,6', name: 'تكييف', icon: '❄️', points: [], lines: [] }
   },
 
   // تهيئة النظام
@@ -53,6 +53,7 @@ const BIM = {
 
     this.scenes.forEach(scene => {
       const hotspots = scene.data.infoHotspots || [];
+      const scenePoints = [];
       
       hotspots.forEach(hotspot => {
         // استخراج الـ ID من title (إزالة وسوم HTML)
@@ -69,20 +70,48 @@ const BIM = {
         if (!type) return;
 
         // تخزين النقطة
-        this.layers[type].points.push({
+        const point = {
           id: id,
           sceneId: scene.data.id,
           yaw: hotspot.yaw,
           pitch: hotspot.pitch,
           text: text,
           connections: this.parseConnections(text)
-        });
+        };
         
+        this.layers[type].points.push(point);
+        scenePoints.push(point);
         totalHotspots++;
       });
+      
+      // بعد جمع كل النقاط للمشهد، نقوم ببناء الخطوط الثابتة
+      this.buildFixedLines(scene.data.id, scenePoints);
     });
 
     console.log(`✅ Loaded ${totalHotspots} hotspots:`, this.getStats());
+  },
+
+  // بناء خطوط ثابتة للمشهد
+  buildFixedLines: function(sceneId, points) {
+    Object.keys(this.layers).forEach(type => {
+      const layer = this.layers[type];
+      const typePoints = points.filter(p => p.id.includes(type));
+      
+      typePoints.forEach(point => {
+        point.connections.forEach(connId => {
+          const target = typePoints.find(p => p.id === connId);
+          if (target) {
+            // تخزين الخط الثابت
+            layer.lines.push({
+              sceneId: sceneId,
+              from: { yaw: point.yaw, pitch: point.pitch },
+              to: { yaw: target.yaw, pitch: target.pitch },
+              id: `${point.id}-to-${connId}`
+            });
+          }
+        });
+      });
+    });
   },
 
   // تنظيف النص من وسوم HTML
@@ -114,7 +143,7 @@ const BIM = {
       });
     }
     
-    return [...new Set(connections)]; // إزالة التكرار
+    return [...new Set(connections)];
   },
 
   // رسم شبكة المشهد الحالي
@@ -125,7 +154,6 @@ const BIM = {
     }
 
     const sceneId = this.currentScene.data.id;
-    let drawnCount = 0;
     
     Object.keys(this.layers).forEach(type => {
       const layer = this.layers[type];
@@ -134,116 +162,104 @@ const BIM = {
       // مسح القديم
       layer.svg.innerHTML = '';
       
-      // الحصول على نقاط هذا المشهد فقط
-      const points = layer.points.filter(p => p.sceneId === sceneId);
-      
-      if (points.length > 0) {
-        drawnCount += points.length;
-        
-        // رسم الخطوط أولاً
-        points.forEach(point => {
-          point.connections.forEach(connId => {
-            const target = points.find(p => p.id === connId);
-            if (target) {
-              this.drawLine(type, point, target);
-            }
-          });
-        });
+      // رسم الخطوط الثابتة أولاً
+      const sceneLines = layer.lines.filter(line => line.sceneId === sceneId);
+      sceneLines.forEach(line => {
+        this.drawFixedLine(type, line);
+      });
 
-        // ثم رسم النقاط
-        points.forEach(point => {
-          this.drawPoint(type, point);
-        });
-      }
+      // ثم رسم النقاط
+      const points = layer.points.filter(p => p.sceneId === sceneId);
+      points.forEach(point => {
+        this.drawFixedPoint(type, point);
+      });
       
       // إظهار/إخفاء حسب الحالة
       layer.svg.style.display = layer.visible ? 'block' : 'none';
     });
-    
-    if (drawnCount > 0) {
-      console.log(`🎨 Drew ${drawnCount} points in scene: ${sceneId}`);
-    }
   },
 
-  // رسم خط بين نقطتين
-  drawLine: function(type, point1, point2) {
+  // رسم خط ثابت (يتم رسمه مرة واحدة فقط)
+  drawFixedLine: function(type, line) {
     const layer = this.layers[type];
-    if (!layer || !layer.svg || !this.viewer) return;
+    if (!layer || !layer.svg) return;
 
     try {
-      const view = this.viewer.view();
-      const yaw = view.yaw();
-      const pitch = view.pitch();
-      const fov = view.fov();
+      // تحويل الإحداثيات الزاوية إلى إحداثيات SVG ثابتة
+      // نستخدم Scale كبير لتحويل الراديان إلى pixels
+      const scale = 1000; // عامل التحويل
+      
+      const x1 = 500 + (line.from.yaw * scale);
+      const y1 = 300 + (line.from.pitch * scale);
+      const x2 = 500 + (line.to.yaw * scale);
+      const y2 = 300 + (line.to.pitch * scale);
 
-      // تحويل الإحداثيات الزاوية إلى إحداثيات شاشة
-      const x1 = (0.5 + (point1.yaw - yaw) / fov) * window.innerWidth;
-      const y1 = (0.5 - (point1.pitch - pitch) / fov) * window.innerHeight;
-      const x2 = (0.5 + (point2.yaw - yaw) / fov) * window.innerWidth;
-      const y2 = (0.5 - (point2.pitch - pitch) / fov) * window.innerHeight;
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      
+      // رسم خط منحني أو مستقيم حسب الحاجة
+      const d = `M ${x1} ${y1} L ${x2} ${y2}`;
+      
+      path.setAttribute('d', d);
+      path.setAttribute('stroke', layer.color);
+      path.setAttribute('stroke-width', '4');
+      path.setAttribute('stroke-dasharray', layer.dash);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('class', `${type.toLowerCase()}-path fixed-line`);
+      path.setAttribute('data-line', line.id);
 
-      // التحقق من أن النقاط ضمن الشاشة
-      if (this.isPointVisible(x1, y1) || this.isPointVisible(x2, y2)) {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', x1);
-        line.setAttribute('y1', y1);
-        line.setAttribute('x2', x2);
-        line.setAttribute('y2', y2);
-        line.setAttribute('stroke', layer.color);
-        line.setAttribute('stroke-width', '3');
-        line.setAttribute('stroke-dasharray', layer.dash);
-        line.setAttribute('class', `${type.toLowerCase()}-path`);
-
-        layer.svg.appendChild(line);
-      }
+      layer.svg.appendChild(path);
     } catch(e) {
-      // تجاهل أخطاء الرسم
+      console.warn('Error drawing fixed line:', e);
     }
   },
 
-  // رسم نقطة
-  drawPoint: function(type, point) {
+  // رسم نقطة ثابتة
+  drawFixedPoint: function(type, point) {
     const layer = this.layers[type];
-    if (!layer || !layer.svg || !this.viewer) return;
+    if (!layer || !layer.svg) return;
 
     try {
-      const view = this.viewer.view();
-      const yaw = view.yaw();
-      const pitch = view.pitch();
-      const fov = view.fov();
+      // تحويل الإحداثيات الزاوية إلى إحداثيات SVG ثابتة
+      const scale = 1000; // عامل التحويل
+      
+      const x = 500 + (point.yaw * scale);
+      const y = 300 + (point.pitch * scale);
 
-      const x = (0.5 + (point.yaw - yaw) / fov) * window.innerWidth;
-      const y = (0.5 - (point.pitch - pitch) / fov) * window.innerHeight;
+      // دائرة النقطة
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', x);
+      circle.setAttribute('cy', y);
+      circle.setAttribute('r', '12');
+      circle.setAttribute('fill', layer.color);
+      circle.setAttribute('stroke', 'white');
+      circle.setAttribute('stroke-width', '3');
+      circle.setAttribute('data-id', point.id);
+      circle.setAttribute('class', 'fixed-point');
+      circle.style.cursor = 'pointer';
+      circle.style.pointerEvents = 'auto';
+      
+      circle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showPointInfo(point);
+      });
 
-      // ارسم فقط إذا كانت النقطة ضمن الشاشة
-      if (this.isPointVisible(x, y)) {
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', x);
-        circle.setAttribute('cy', y);
-        circle.setAttribute('r', '8');
-        circle.setAttribute('fill', layer.color);
-        circle.setAttribute('stroke', 'white');
-        circle.setAttribute('stroke-width', '2');
-        circle.setAttribute('data-id', point.id);
-        circle.style.cursor = 'pointer';
-        circle.style.pointerEvents = 'auto';
-        
-        circle.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.showPointInfo(point);
-        });
+      layer.svg.appendChild(circle);
 
-        layer.svg.appendChild(circle);
-      }
+      // إضافة نص التسمية
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', x + 15);
+      text.setAttribute('y', y - 10);
+      text.setAttribute('fill', 'white');
+      text.setAttribute('font-size', '12');
+      text.setAttribute('stroke', 'black');
+      text.setAttribute('stroke-width', '0.5');
+      text.textContent = point.id;
+      
+      layer.svg.appendChild(text);
+
     } catch(e) {
-      // تجاهل أخطاء الرسم
+      console.warn('Error drawing fixed point:', e);
     }
-  },
-
-  // التحقق من أن النقطة ضمن الشاشة
-  isPointVisible: function(x, y) {
-    return x > -50 && x < window.innerWidth + 50 && 
-           y > -50 && y < window.innerHeight + 50;
   },
 
   // عرض معلومات النقطة
@@ -277,13 +293,11 @@ const BIM = {
     return 'غير معروف';
   },
 
-  // ========== دالة احتياطية للتوافق مع الكود القديم ==========
+  // دالة احتياطية للتوافق
   loadScene: function(sceneId) {
     console.log('⚠️ loadScene called - using drawCurrentScene instead');
     if (this.currentScene) {
       this.drawCurrentScene();
-    } else {
-      console.warn('⚠️ No current scene to draw');
     }
   },
 
@@ -317,62 +331,22 @@ const BIM = {
   getStats: function() {
     const stats = {};
     Object.keys(this.layers).forEach(type => {
-      stats[type] = this.layers[type].points.length;
+      stats[type] = {
+        points: this.layers[type].points.length,
+        lines: this.layers[type].lines.length
+      };
     });
     return stats;
   },
 
-  // تحديث الرسم عند التحرك
+  // تحديث الرسم (الآن لا يفعل شيئاً لأن الرسم ثابت)
   update: function() {
-    if (!this.currentScene) return;
-    this.drawCurrentScene();
-    requestAnimationFrame(() => this.update());
-  },
-  
-  // ========== دوال مساعدة إضافية ==========
-  
-  // إظهار كل الطبقات
-  showAllLayers: function() {
-    Object.keys(this.layers).forEach(type => {
-      const layer = this.layers[type];
-      layer.visible = true;
-      if (layer.svg) layer.svg.style.display = 'block';
-      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => {
-        btn.classList.add('active');
-      });
-    });
-    console.log('👁️ All layers shown');
-    this.drawCurrentScene();
-  },
-  
-  // إخفاء كل الطبقات
-  hideAllLayers: function() {
-    Object.keys(this.layers).forEach(type => {
-      const layer = this.layers[type];
-      layer.visible = false;
-      if (layer.svg) layer.svg.style.display = 'none';
-      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => {
-        btn.classList.remove('active');
-      });
-    });
-    console.log('👁️ All layers hidden');
-  },
-  
-  // إعادة تحميل البيانات
-  reloadData: function() {
-    console.log('🔄 Reloading hotspot data...');
-    // مسح النقاط القديمة
-    Object.keys(this.layers).forEach(type => {
-      this.layers[type].points = [];
-    });
-    // إعادة التحميل
-    this.loadHotspotsFromData();
-    this.drawCurrentScene();
+    // لا حاجة للتحديث المستمر لأن الرسم ثابت
+    // نتركها فارغة لمنع الأخطاء
   }
 };
 
 // تعريف للعالمية
 window.BIM = BIM;
 
-// رسالة تأكيد التحميل
-console.log('📦 BIM System loaded and ready');
+console.log('📦 BIM System loaded and ready - FIXED MODE');
