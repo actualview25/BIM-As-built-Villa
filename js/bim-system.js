@@ -245,7 +245,12 @@ const BIM = {
     if (id.includes('AC')) return '❄️ تكييف';
     return 'غير معروف';
   },
-
+// دالة احتياطية للتوافق
+loadScene: function(sceneId) {
+  if (this.currentScene) {
+    this.drawCurrentScene();
+  }
+},
   // إظهار/إخفاء طبقة
   toggleLayer: function(type) {
     const layer = this.layers[type];
