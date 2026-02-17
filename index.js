@@ -570,4 +570,45 @@
       console.log('✅ BIMSystem ready');
     }
   }, 1000);
+// ==================== نظام BIM الموحد ====================
+  
+  // تهيئة نظام BIM بعد تحميل المشاهد
+  setTimeout(function() {
+    if (window.BIM && viewer && scenes) {
+      try {
+        // تهيئة النظام
+        window.BIM.init(viewer, scenes);
+        
+        // تعيين المشهد الحالي
+        if (scenes.length > 0) {
+          window.BIM.currentScene = scenes[0];
+          window.BIM.drawCurrentScene();
+        }
+        
+        // بدء التحديث المستمر
+        window.BIM.update();
+        
+        // ربط أزرار BIM
+        const buttons = document.querySelectorAll('.bim-btn');
+        console.log(`🔘 Found ${buttons.length} BIM buttons`);
+        
+        buttons.forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const layer = this.getAttribute('data-layer');
+            if (layer && window.BIM) {
+              window.BIM.toggleLayer(layer);
+            }
+          });
+        });
+        
+        console.log('✅ BIM System is ready and running');
+      } catch(e) {
+        console.error('❌ BIM Error:', e);
+      }
+    } else {
+      console.warn('⚠️ BIM not available');
+    }
+  }, 1500); // تأخير أطول لضمان تحميل كل شيء
+
 })();
