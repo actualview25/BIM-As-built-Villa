@@ -13,6 +13,7 @@ const BIM = {
 
   // تهيئة النظام
   init: function(viewer, scenesList) {
+    console.log('🚀 BIM initializing...');
     this.viewer = viewer;
     this.scenes = scenesList;
     this.createSVGLayers();
@@ -24,20 +25,31 @@ const BIM = {
   // إنشاء طبقات SVG
   createSVGLayers: function() {
     const overlay = document.getElementById('bim-overlay');
-    if (!overlay) return;
+    if (!overlay) {
+      console.warn('⚠️ bim-overlay not found');
+      return;
+    }
     
     Object.keys(this.layers).forEach(key => {
       const svg = document.getElementById(`layer-${key}`);
       if (svg) {
         this.layers[key].svg = svg;
         svg.innerHTML = ''; // مسح المحتوى القديم
+        console.log(`✅ Layer ${key} ready`);
+      } else {
+        console.warn(`⚠️ Layer ${key} SVG not found`);
       }
     });
   },
 
   // تحميل البيانات من Hotspots في data.js
   loadHotspotsFromData: function() {
-    if (!this.scenes) return;
+    if (!this.scenes || !this.scenes.length) {
+      console.warn('⚠️ No scenes available');
+      return;
+    }
+
+    let totalHotspots = 0;
 
     this.scenes.forEach(scene => {
       const hotspots = scene.data.infoHotspots || [];
@@ -65,10 +77,12 @@ const BIM = {
           text: text,
           connections: this.parseConnections(text)
         });
+        
+        totalHotspots++;
       });
     });
 
-    console.log('✅ Hotspots loaded:', this.getStats());
+    console.log(`✅ Loaded ${totalHotspots} hotspots:`, this.getStats());
   },
 
   // تنظيف النص من وسوم HTML
@@ -82,18 +96,21 @@ const BIM = {
     if (!text) return [];
     
     const connections = [];
+    
     // البحث عن أكواد مثل EL-SEN-01, JN-EL-7, END-EL-3
-    const matches = text.match(/[A-Z]+(?:-SEN|-JN|-END)?-\d+/g);
-    if (matches) {
-      matches.forEach(m => connections.push(m));
+    const codeMatches = text.match(/[A-Z]+(?:-[A-Z]+)?-\d+/g);
+    if (codeMatches) {
+      codeMatches.forEach(m => connections.push(m));
     }
     
     // البحث عن IN TO, TO, FROM
     const toMatches = text.match(/(?:IN TO|TO|FROM)\s+([A-Z0-9-]+)/gi);
     if (toMatches) {
       toMatches.forEach(m => {
-        const code = m.replace(/(?:IN TO|TO|FROM)\s+/i, '');
-        connections.push(code);
+        const code = m.replace(/(?:IN TO|TO|FROM)\s+/i, '').trim();
+        if (code && !connections.includes(code)) {
+          connections.push(code);
+        }
       });
     }
     
@@ -102,9 +119,13 @@ const BIM = {
 
   // رسم شبكة المشهد الحالي
   drawCurrentScene: function() {
-    if (!this.currentScene || !this.viewer) return;
+    if (!this.currentScene || !this.viewer) {
+      console.warn('⚠️ Cannot draw: no current scene or viewer');
+      return;
+    }
 
     const sceneId = this.currentScene.data.id;
+    let drawnCount = 0;
     
     Object.keys(this.layers).forEach(type => {
       const layer = this.layers[type];
@@ -116,24 +137,32 @@ const BIM = {
       // الحصول على نقاط هذا المشهد فقط
       const points = layer.points.filter(p => p.sceneId === sceneId);
       
-      // رسم الخطوط أولاً
-      points.forEach(point => {
-        point.connections.forEach(connId => {
-          const target = points.find(p => p.id === connId);
-          if (target) {
-            this.drawLine(type, point, target);
-          }
+      if (points.length > 0) {
+        drawnCount += points.length;
+        
+        // رسم الخطوط أولاً
+        points.forEach(point => {
+          point.connections.forEach(connId => {
+            const target = points.find(p => p.id === connId);
+            if (target) {
+              this.drawLine(type, point, target);
+            }
+          });
         });
-      });
 
-      // ثم رسم النقاط
-      points.forEach(point => {
-        this.drawPoint(type, point);
-      });
+        // ثم رسم النقاط
+        points.forEach(point => {
+          this.drawPoint(type, point);
+        });
+      }
       
       // إظهار/إخفاء حسب الحالة
       layer.svg.style.display = layer.visible ? 'block' : 'none';
     });
+    
+    if (drawnCount > 0) {
+      console.log(`🎨 Drew ${drawnCount} points in scene: ${sceneId}`);
+    }
   },
 
   // رسم خط بين نقطتين
@@ -227,10 +256,12 @@ const BIM = {
     
     title.textContent = point.id;
     
-    let html = '<div style="padding: 10px;">';
-    html += `<p><strong>النوع:</strong> ${this.getTypeName(point.id)}</p>`;
-    html += `<p><strong>الاتصالات:</strong> ${point.connections.join(' ← ')}</p>`;
-    html += `<p><strong>الوصف:</strong> ${point.text || 'لا يوجد'}</p>`;
+    let html = '<div style="padding: 10px; direction: rtl;">';
+    html += `<p><strong>🔹 النوع:</strong> ${this.getTypeName(point.id)}</p>`;
+    html += `<p><strong>🔹 المشهد:</strong> ${point.sceneId}</p>`;
+    html += `<p><strong>🔹 الإحداثيات:</strong> yaw: ${point.yaw.toFixed(2)}, pitch: ${point.pitch.toFixed(2)}</p>`;
+    html += `<p><strong>🔹 الاتصالات:</strong> ${point.connections.join(' ← ') || 'لا توجد'}</p>`;
+    html += `<p><strong>🔹 الوصف:</strong> ${point.text || 'لا يوجد'}</p>`;
     html += '</div>';
     
     content.innerHTML = html;
@@ -245,16 +276,24 @@ const BIM = {
     if (id.includes('AC')) return '❄️ تكييف';
     return 'غير معروف';
   },
-// دالة احتياطية للتوافق
-loadScene: function(sceneId) {
-  if (this.currentScene) {
-    this.drawCurrentScene();
-  }
-},
+
+  // ========== دالة احتياطية للتوافق مع الكود القديم ==========
+  loadScene: function(sceneId) {
+    console.log('⚠️ loadScene called - using drawCurrentScene instead');
+    if (this.currentScene) {
+      this.drawCurrentScene();
+    } else {
+      console.warn('⚠️ No current scene to draw');
+    }
+  },
+
   // إظهار/إخفاء طبقة
   toggleLayer: function(type) {
     const layer = this.layers[type];
-    if (!layer) return;
+    if (!layer) {
+      console.warn(`⚠️ Layer ${type} not found`);
+      return;
+    }
     
     layer.visible = !layer.visible;
     
@@ -288,8 +327,52 @@ loadScene: function(sceneId) {
     if (!this.currentScene) return;
     this.drawCurrentScene();
     requestAnimationFrame(() => this.update());
+  },
+  
+  // ========== دوال مساعدة إضافية ==========
+  
+  // إظهار كل الطبقات
+  showAllLayers: function() {
+    Object.keys(this.layers).forEach(type => {
+      const layer = this.layers[type];
+      layer.visible = true;
+      if (layer.svg) layer.svg.style.display = 'block';
+      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => {
+        btn.classList.add('active');
+      });
+    });
+    console.log('👁️ All layers shown');
+    this.drawCurrentScene();
+  },
+  
+  // إخفاء كل الطبقات
+  hideAllLayers: function() {
+    Object.keys(this.layers).forEach(type => {
+      const layer = this.layers[type];
+      layer.visible = false;
+      if (layer.svg) layer.svg.style.display = 'none';
+      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => {
+        btn.classList.remove('active');
+      });
+    });
+    console.log('👁️ All layers hidden');
+  },
+  
+  // إعادة تحميل البيانات
+  reloadData: function() {
+    console.log('🔄 Reloading hotspot data...');
+    // مسح النقاط القديمة
+    Object.keys(this.layers).forEach(type => {
+      this.layers[type].points = [];
+    });
+    // إعادة التحميل
+    this.loadHotspotsFromData();
+    this.drawCurrentScene();
   }
 };
 
 // تعريف للعالمية
 window.BIM = BIM;
+
+// رسالة تأكيد التحميل
+console.log('📦 BIM System loaded and ready');
