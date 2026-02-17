@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Project Title - BIM System</title>
+<meta charset="utf-8">
+<meta name="viewport" content="target-densitydpi=device-dpi, width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, minimal-ui" />
+<style> @-ms-viewport { width: device-width; } </style>
+<link rel="stylesheet" href="vendor/reset.min.css">
+<link rel="stylesheet" href="style.css">
+<!-- إضافة CSS الخاص بنظام BIM -->
+<link rel="stylesheet" href="css/bim-style.css">
+</head>
+<body class="multiple-scenes">
+
+<div id="pano"></div>
+
+<!-- طبقات BIM - تضاف هنا -->
+<div id="bim-overlay">
+  <svg id="layer-EL" class="bim-layer"></svg>
+  <svg id="layer-PW" class="bim-layer"></svg>
+  <svg id="layer-GS" class="bim-layer"></svg>
+  <svg id="layer-AC" class="bim-layer"></svg>
+</div>
+
+<!-- لوحة معلومات BIM -->
+<div id="bim-info-panel">
+  <div id="bim-panel-header">
+    <span id="bim-panel-title">معلومات العنصر</span>
+    <button onclick="document.getElementById('bim-info-panel').classList.remove('visible')">✕</button>
+  </div>
+  <div id="bim-panel-content"></div>
+</div>
+
+<div id="sceneList">
+  <ul class="scenes">
+    
+      <a href="javascript:void(0)" class="scene" data-id="0-startpoint">
+        <li class="text">StartPoint</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="1-couartyard">
+        <li class="text">CouartYard</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="2-groundhall">
+        <li class="text">GroundHall</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="3-groundkichin">
+        <li class="text">GroundKichin</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="4-corridorground">
+        <li class="text">CorridorGround</li>
+      </a>
+    
+      <a href="javascript:void(0)" class="scene" data-id="5-livingroom">
+        <li class="text">LivingRoom</li>
+      </a>
+    
+  </ul>
+</div>
+
+<div id="titleBar">
+  <h1 class="sceneName"></h1>
+</div>
+
+<a href="javascript:void(0)" id="autorotateToggle">
+  <img class="icon off" src="img/play.png">
+  <img class="icon on" src="img/pause.png">
+</a>
+
+<a href="javascript:void(0)" id="fullscreenToggle">
+  <img class="icon off" src="img/fullscreen.png">
+  <img class="icon on" src="img/windowed.png">
+</a>
+
+<a href="javascript:void(0)" id="sceneListToggle">
+  <img class="icon off" src="img/expand.png">
+  <img class="icon on" src="img/collapse.png">
+</a>
+
+<a href="javascript:void(0)" id="viewUp" class="viewControlButton viewControlButton-1">
+  <img class="icon" src="img/up.png">
+</a>
+<a href="javascript:void(0)" id="viewDown" class="viewControlButton viewControlButton-2">
+  <img class="icon" src="img/down.png">
+</a>
+<a href="javascript:void(0)" id="viewLeft" class="viewControlButton viewControlButton-3">
+  <img class="icon" src="img/left.png">
+</a>
+<a href="javascript:void(0)" id="viewRight" class="viewControlButton viewControlButton-4">
+  <img class="icon" src="img/right.png">
+</a>
+<a href="javascript:void(0)" id="viewIn" class="viewControlButton viewControlButton-5">
+  <img class="icon" src="img/plus.png">
+</a>
+<a href="javascript:void(0)" id="viewOut" class="viewControlButton viewControlButton-6">
+  <img class="icon" src="img/minus.png">
+</a>
+
+<!-- أزرار التحكم في BIM -->
+<div id="bim-controls">
+  <button class="bim-btn active" data-layer="EL" style="border-color: #44ff44;">
+    <span class="bim-icon">⚡</span> كهرباء
+  </button>
+  <button class="bim-btn active" data-layer="PW" style="border-color: #4444ff;">
+    <span class="bim-icon">💧</span> مياه
+  </button>
+  <button class="bim-btn active" data-layer="GS" style="border-color: #ff4444;">
+    <span class="bim-icon">🔥</span> غاز
+  </button>
+  <button class="bim-btn active" data-layer="AC" style="border-color: #ffaa44;">
+    <span class="bim-icon">❄️</span> تكييف
+  </button>
+</div>
+
+<!-- تحميل المكتبات -->
+<script src="vendor/screenfull.min.js"></script>
+<script src="vendor/bowser.min.js"></script>
+<script src="vendor/marzipano.js"></script>
+
+<!-- بيانات BIM أولاً -->
+<script src="data/bim-data.js"></script>
+
+<!-- نظام BIM -->
+<script src="layers/bim-core.js"></script>
+<script src="layers/electrical.js"></script>
+<script src="layers/plumbing.js"></script>
+<script src="layers/hvac.js"></script>
+<script src="layers/gas.js"></script>
+
+<!-- الملفات الأصلية -->
+<script src="data.js"></script>
+<script src="index.js"></script>
+
+</body>
+</html>
