@@ -1,31 +1,3 @@
-/* css/bim-style.css */
-
-#bim-controls button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 15px currentColor;
-}
-
-#bim-info-panel {
-  font-family: 'Arial', sans-serif;
-  direction: rtl;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-}
-
-/* تلميحات عند hover */
-#bim-overlay circle:hover {
-  filter: drop-shadow(0 0 8px yellow);
-  r: 12;
-}
-
-/* خطوط الشبكة */
-#bim-overlay line {
-  transition: stroke-width 0.2s;
-}
-
-#bim-overlay line:hover {
-  stroke-width: 5;
-}
-
 /* css/bim-style.css - أنماط نظام BIM */
 
 /* طبقات BIM */
@@ -46,30 +18,25 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
-  display: none;
-}
-
-.bim-layer[data-visible="true"] {
-  display: block;
 }
 
 /* عناصر BIM */
-.bim-node {
+#bim-overlay circle {
   pointer-events: auto;
   cursor: pointer;
   transition: r 0.2s, filter 0.2s;
 }
 
-.bim-node:hover {
+#bim-overlay circle:hover {
   filter: drop-shadow(0 0 8px yellow);
   r: 12;
 }
 
-.bim-line {
+#bim-overlay line {
   transition: stroke-width 0.2s;
 }
 
-.bim-line:hover {
+#bim-overlay line:hover {
   stroke-width: 5;
 }
 
@@ -133,24 +100,6 @@
   padding: 20px;
   max-height: 300px;
   overflow-y: auto;
-}
-
-.bim-info-row {
-  display: flex;
-  margin-bottom: 10px;
-  padding: 5px 0;
-  border-bottom: 1px solid #333;
-}
-
-.bim-info-label {
-  width: 40%;
-  color: #00ff00;
-  font-weight: bold;
-}
-
-.bim-info-value {
-  width: 60%;
-  color: white;
 }
 
 /* أزرار التحكم في BIM */
@@ -223,18 +172,8 @@
   }
 }
 
-/* تأثيرات إضافية */
-@keyframes pulse {
-  0% { filter: drop-shadow(0 0 2px currentColor); }
-  50% { filter: drop-shadow(0 0 8px currentColor); }
-  100% { filter: drop-shadow(0 0 2px currentColor); }
-}
-
-.bim-node.source {
-  animation: pulse 2s infinite;
-}
-
-/* إخفاء المؤقت للوحة */
-.bim-info-hidden {
-  display: none;
-}
+/* أنماط الطبقات */
+.EL-path { stroke: #44ff44; }
+.PW-path { stroke: #4444ff; }
+.GS-path { stroke: #ff4444; }
+.AC-path { stroke: #ffaa44; }
