@@ -488,5 +488,65 @@
     });
     console.log('✅ BIM buttons connected');
   }
-
+// ========== اختبار نظام BIM ==========
+  
+  // تهيئة نظام BIM
+  setTimeout(function() {
+    if (window.BIM && viewer) {
+      try {
+        console.log('🚀 بدء تهيئة BIM...');
+        
+        // تهيئة النظام
+        window.BIM.init(viewer);
+        
+        // ربط المشهد الحالي
+        if (scenes && scenes.length > 0) {
+          window.BIM.currentScene = scenes[0];
+          window.BIM.loadScene(scenes[0].data.id);
+        }
+        
+        // بدء التحديث
+        window.BIM.update();
+        
+        // ربط أزرار BIM
+        connectBIMButtons();
+        
+        console.log('✅ BIM System initialized');
+      } catch(e) {
+        console.error('❌ خطأ في BIM:', e);
+      }
+    } else {
+      console.warn('⚠️ BIM غير متوفر');
+    }
+  }, 1000);
+  
+  // ربط الأزرار الموجودة في HTML
+  function connectBIMButtons() {
+    var buttons = document.querySelectorAll('.bim-btn');
+    console.log('🔘 عدد أزرار BIM:', buttons.length);
+    
+    buttons.forEach(function(btn, index) {
+      var layer = btn.getAttribute('data-layer');
+      console.log(`  زر ${index + 1}: ${layer}`);
+      
+      btn.onclick = function() {
+        if (window.BIM) {
+          var type = this.getAttribute('data-layer');
+          console.log('👆 النقر على:', type);
+          window.BIM.toggleLayer(type);
+        }
+      };
+    });
+  }
+  
+  // اختبار يدوي للطبقات بعد 3 ثوان
+  setTimeout(function() {
+    if (window.BIM) {
+      console.log('🧪 اختبار إظهار جميع الطبقات...');
+      window.BIM.toggleLayer('EL');
+      window.BIM.toggleLayer('PW');
+      window.BIM.toggleLayer('GS');
+      window.BIM.toggleLayer('AC');
+    }
+  }, 3000);
 })();
