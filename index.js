@@ -549,4 +549,25 @@
       window.BIM.toggleLayer('AC');
     }
   }, 3000);
+// بعد إنشاء المشاهد وقبل إغلاق الدالة
+
+  // تهيئة نظام BIM
+  setTimeout(function() {
+    if (window.BIMSystem && viewer) {
+      window.BIMSystem.init(viewer, scenes);
+      window.BIMSystem.currentScene = scenes[0];
+      window.BIMSystem.drawCurrentScene();
+      window.BIMSystem.update();
+      
+      // ربط أزرار الطبقات
+      document.querySelectorAll('.layer-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const layer = this.getAttribute('data-layer');
+          window.BIMSystem.toggleLayer(layer);
+        });
+      });
+      
+      console.log('✅ BIMSystem ready');
+    }
+  }, 1000);
 })();
