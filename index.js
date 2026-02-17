@@ -227,13 +227,12 @@
     updateSceneName(scene);
     updateSceneList(scene);
     
-    // تحديث نظام BIM
+    // تحديث نظام BIM - ✅ التصحيح الصحيح
     if (window.BIM) {
       window.BIM.currentScene = scene;
-      window.BIM.loadScene(scene.data.id);
+      window.BIM.drawCurrentScene();  // ✅ استخدم drawCurrentScene
     }
   }
-
   function updateSceneName(scene) {
     if (sceneNameElement) {
       sceneNameElement.innerHTML = sanitize(scene.data.name);
@@ -582,7 +581,7 @@
         // تعيين المشهد الحالي
         if (scenes.length > 0) {
           window.BIM.currentScene = scenes[0];
-          window.BIM.drawCurrentScene();
+          window.BIM.drawCurrentScene();  // ✅ استخدم drawCurrentScene
         }
         
         // بدء التحديث المستمر
@@ -609,6 +608,6 @@
     } else {
       console.warn('⚠️ BIM not available');
     }
-  }, 1500); // تأخير أطول لضمان تحميل كل شيء
+  }, 1500);
 
 })();
