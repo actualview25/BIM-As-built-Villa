@@ -217,6 +217,7 @@
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  // ========== دالة تغيير المشهد المعدلة ==========
   function switchScene(scene) {
     if (!scene) return;
     
@@ -227,12 +228,18 @@
     updateSceneName(scene);
     updateSceneList(scene);
     
-    // تحديث نظام BIM - ✅ التصحيح الصحيح
+    // تحديث نظام BIM - ✅ تم التصحيح
     if (window.BIM) {
       window.BIM.currentScene = scene;
-      window.BIM.drawCurrentScene();  // ✅ استخدم drawCurrentScene
+      // استخدم drawCurrentScene بدلاً من loadScene
+      if (typeof window.BIM.drawCurrentScene === 'function') {
+        window.BIM.drawCurrentScene();
+      } else {
+        console.warn('⚠️ drawCurrentScene غير موجودة');
+      }
     }
   }
+
   function updateSceneName(scene) {
     if (sceneNameElement) {
       sceneNameElement.innerHTML = sanitize(scene.data.name);
@@ -451,141 +458,29 @@
     switchScene(scenes[0]);
   }
 
-  // ==================== نظام BIM ====================
-  
-  // تهيئة نظام BIM بعد تحميل المشاهد
-  setTimeout(function() {
-    if (window.BIM && viewer) {
-      try {
-        window.BIM.init(viewer);
-        console.log('✅ BIM System initialized from index.js');
-        
-        // بدء تحديث الرسم
-        window.BIM.update();
-        
-        // ربط الأزرار الموجودة في HTML
-        setupBIMButtons();
-        
-      } catch(e) {
-        console.warn('⚠️ خطأ في تهيئة BIM:', e);
-      }
-    } else {
-      console.warn('⚠️ BIM غير متاح');
-    }
-  }, 500);
-
-  // ربط أزرار BIM الموجودة في HTML
-  function setupBIMButtons() {
-    var buttons = document.querySelectorAll('.bim-btn');
-    buttons.forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var layer = this.getAttribute('data-layer');
-        if (layer && window.BIM) {
-          window.BIM.toggleLayer(layer);
-        }
-      });
-    });
-    console.log('✅ BIM buttons connected');
-  }
-// ========== اختبار نظام BIM ==========
-  
-  // تهيئة نظام BIM
-  setTimeout(function() {
-    if (window.BIM && viewer) {
-      try {
-        console.log('🚀 بدء تهيئة BIM...');
-        
-        // تهيئة النظام
-        window.BIM.init(viewer);
-        
-        // ربط المشهد الحالي
-        if (scenes && scenes.length > 0) {
-          window.BIM.currentScene = scenes[0];
-          window.BIM.loadScene(scenes[0].data.id);
-        }
-        
-        // بدء التحديث
-        window.BIM.update();
-        
-        // ربط أزرار BIM
-        connectBIMButtons();
-        
-        console.log('✅ BIM System initialized');
-      } catch(e) {
-        console.error('❌ خطأ في BIM:', e);
-      }
-    } else {
-      console.warn('⚠️ BIM غير متوفر');
-    }
-  }, 1000);
-  
-  // ربط الأزرار الموجودة في HTML
-  function connectBIMButtons() {
-    var buttons = document.querySelectorAll('.bim-btn');
-    console.log('🔘 عدد أزرار BIM:', buttons.length);
-    
-    buttons.forEach(function(btn, index) {
-      var layer = btn.getAttribute('data-layer');
-      console.log(`  زر ${index + 1}: ${layer}`);
-      
-      btn.onclick = function() {
-        if (window.BIM) {
-          var type = this.getAttribute('data-layer');
-          console.log('👆 النقر على:', type);
-          window.BIM.toggleLayer(type);
-        }
-      };
-    });
-  }
-  
-  // اختبار يدوي للطبقات بعد 3 ثوان
-  setTimeout(function() {
-    if (window.BIM) {
-      console.log('🧪 اختبار إظهار جميع الطبقات...');
-      window.BIM.toggleLayer('EL');
-      window.BIM.toggleLayer('PW');
-      window.BIM.toggleLayer('GS');
-      window.BIM.toggleLayer('AC');
-    }
-  }, 3000);
-// بعد إنشاء المشاهد وقبل إغلاق الدالة
-
-  // تهيئة نظام BIM
-  setTimeout(function() {
-    if (window.BIMSystem && viewer) {
-      window.BIMSystem.init(viewer, scenes);
-      window.BIMSystem.currentScene = scenes[0];
-      window.BIMSystem.drawCurrentScene();
-      window.BIMSystem.update();
-      
-      // ربط أزرار الطبقات
-      document.querySelectorAll('.layer-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const layer = this.getAttribute('data-layer');
-          window.BIMSystem.toggleLayer(layer);
-        });
-      });
-      
-      console.log('✅ BIMSystem ready');
-    }
-  }, 1000);
-// ==================== نظام BIM الموحد ====================
+  // ==================== نظام BIM الموحد ====================
   
   // تهيئة نظام BIM بعد تحميل المشاهد
   setTimeout(function() {
     if (window.BIM && viewer && scenes) {
       try {
         // تهيئة النظام
-        window.BIM.init(viewer, scenes);
+        if (typeof window.BIM.init === 'function') {
+          window.BIM.init(viewer, scenes);
+        }
         
         // تعيين المشهد الحالي
         if (scenes.length > 0) {
           window.BIM.currentScene = scenes[0];
-          window.BIM.drawCurrentScene();  // ✅ استخدم drawCurrentScene
+          if (typeof window.BIM.drawCurrentScene === 'function') {
+            window.BIM.drawCurrentScene();
+          }
         }
         
         // بدء التحديث المستمر
-        window.BIM.update();
+        if (typeof window.BIM.update === 'function') {
+          window.BIM.update();
+        }
         
         // ربط أزرار BIM
         const buttons = document.querySelectorAll('.bim-btn');
@@ -595,7 +490,7 @@
           btn.addEventListener('click', function(e) {
             e.preventDefault();
             const layer = this.getAttribute('data-layer');
-            if (layer && window.BIM) {
+            if (layer && window.BIM && typeof window.BIM.toggleLayer === 'function') {
               window.BIM.toggleLayer(layer);
             }
           });
@@ -606,7 +501,7 @@
         console.error('❌ BIM Error:', e);
       }
     } else {
-      console.warn('⚠️ BIM not available');
+      console.warn('⚠️ BIM not available - viewer:', !!viewer, 'scenes:', !!scenes, 'BIM:', !!window.BIM);
     }
   }, 1500);
 
