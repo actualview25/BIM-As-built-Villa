@@ -21,6 +21,20 @@
   var screenfull = window.screenfull;
   var data = window.APP_DATA;
 
+  // التحقق من وجود البيانات وإضافة القيم الافتراضية
+  if (!data) {
+    console.error('❌ APP_DATA غير موجود');
+    return;
+  }
+  
+  if (!data.settings) {
+    data.settings = {
+      mouseViewMode: 'drag',
+      autorotateEnabled: false,
+      fullscreenButton: true
+    };
+  }
+
   // Grab elements from DOM.
   var panoElement = document.querySelector('#pano');
   var sceneNameElement = document.querySelector('#titleBar .sceneName');
@@ -89,16 +103,28 @@
     });
 
     // Create link hotspots.
-    data.linkHotspots.forEach(function(hotspot) {
-      var element = createLinkHotspotElement(hotspot);
-      scene.hotspotContainer().createHotspot(element, { yaw: hotspot.yaw, pitch: hotspot.pitch });
-    });
+    if (data.linkHotspots && data.linkHotspots.length > 0) {
+      data.linkHotspots.forEach(function(hotspot) {
+        try {
+          var element = createLinkHotspotElement(hotspot);
+          scene.hotspotContainer().createHotspot(element, { yaw: hotspot.yaw, pitch: hotspot.pitch });
+        } catch(e) {
+          console.warn('خطأ في إضافة link hotspot:', e);
+        }
+      });
+    }
 
     // Create info hotspots.
-    data.infoHotspots.forEach(function(hotspot) {
-      var element = createInfoHotspotElement(hotspot);
-      scene.hotspotContainer().createHotspot(element, { yaw: hotspot.yaw, pitch: hotspot.pitch });
-    });
+    if (data.infoHotspots && data.infoHotspots.length > 0) {
+      data.infoHotspots.forEach(function(hotspot) {
+        try {
+          var element = createInfoHotspotElement(hotspot);
+          scene.hotspotContainer().createHotspot(element, { yaw: hotspot.yaw, pitch: hotspot.pitch });
+        } catch(e) {
+          console.warn('خطأ في إضافة info hotspot:', e);
+        }
+      });
+    }
 
     return {
       data: data,
@@ -106,6 +132,12 @@
       view: view
     };
   });
+
+  // التحقق من وجود مشاهد
+  if (!scenes || scenes.length === 0) {
+    console.error('❌ لا توجد مشاهد');
+    return;
+  }
 
   // Set up autorotate, if enabled.
   var autorotate = Marzipano.autorotate({
@@ -148,13 +180,15 @@
   // Set handler for scene switch.
   scenes.forEach(function(scene) {
     var el = document.querySelector('#sceneList .scene[data-id="' + scene.data.id + '"]');
-    el.addEventListener('click', function() {
-      switchScene(scene);
-      // On mobile, hide scene list after selecting a scene.
-      if (document.body.classList.contains('mobile')) {
-        hideSceneList();
-      }
-    });
+    if (el) {
+      el.addEventListener('click', function() {
+        switchScene(scene);
+        // On mobile, hide scene list after selecting a scene.
+        if (document.body.classList.contains('mobile')) {
+          hideSceneList();
+        }
+      });
+    }
   });
 
   // DOM elements for view controls.
@@ -171,58 +205,71 @@
 
   // Associate view controls with elements.
   var controls = viewer.controls();
-  controls.registerMethod('upElement',    new Marzipano.ElementPressControlMethod(viewUpElement,     'y', -velocity, friction), true);
-  controls.registerMethod('downElement',  new Marzipano.ElementPressControlMethod(viewDownElement,   'y',  velocity, friction), true);
-  controls.registerMethod('leftElement',  new Marzipano.ElementPressControlMethod(viewLeftElement,   'x', -velocity, friction), true);
-  controls.registerMethod('rightElement', new Marzipano.ElementPressControlMethod(viewRightElement,  'x',  velocity, friction), true);
-  controls.registerMethod('inElement',    new Marzipano.ElementPressControlMethod(viewInElement,  'zoom', -velocity, friction), true);
-  controls.registerMethod('outElement',   new Marzipano.ElementPressControlMethod(viewOutElement, 'zoom',  velocity, friction), true);
+  if (viewUpElement) controls.registerMethod('upElement', new Marzipano.ElementPressControlMethod(viewUpElement, 'y', -velocity, friction), true);
+  if (viewDownElement) controls.registerMethod('downElement', new Marzipano.ElementPressControlMethod(viewDownElement, 'y', velocity, friction), true);
+  if (viewLeftElement) controls.registerMethod('leftElement', new Marzipano.ElementPressControlMethod(viewLeftElement, 'x', -velocity, friction), true);
+  if (viewRightElement) controls.registerMethod('rightElement', new Marzipano.ElementPressControlMethod(viewRightElement, 'x', velocity, friction), true);
+  if (viewInElement) controls.registerMethod('inElement', new Marzipano.ElementPressControlMethod(viewInElement, 'zoom', -velocity, friction), true);
+  if (viewOutElement) controls.registerMethod('outElement', new Marzipano.ElementPressControlMethod(viewOutElement, 'zoom', velocity, friction), true);
 
   function sanitize(s) {
-    return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;');
+    if (!s) return '';
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   function switchScene(scene) {
+    if (!scene) return;
+    
     stopAutorotate();
     scene.view.setParameters(scene.data.initialViewParameters);
     scene.scene.switchTo();
     startAutorotate();
     updateSceneName(scene);
     updateSceneList(scene);
+    
+    // تحديث نظام BIM
+    if (window.BIM) {
+      window.BIM.currentScene = scene;
+      window.BIM.loadScene(scene.data.id);
+    }
   }
 
   function updateSceneName(scene) {
-    sceneNameElement.innerHTML = sanitize(scene.data.name);
+    if (sceneNameElement) {
+      sceneNameElement.innerHTML = sanitize(scene.data.name);
+    }
   }
 
   function updateSceneList(scene) {
     for (var i = 0; i < sceneElements.length; i++) {
       var el = sceneElements[i];
-      if (el.getAttribute('data-id') === scene.data.id) {
-        el.classList.add('current');
-      } else {
-        el.classList.remove('current');
+      if (el) {
+        if (el.getAttribute('data-id') === scene.data.id) {
+          el.classList.add('current');
+        } else {
+          el.classList.remove('current');
+        }
       }
     }
   }
 
   function showSceneList() {
-    sceneListElement.classList.add('enabled');
-    sceneListToggleElement.classList.add('enabled');
+    if (sceneListElement) sceneListElement.classList.add('enabled');
+    if (sceneListToggleElement) sceneListToggleElement.classList.add('enabled');
   }
 
   function hideSceneList() {
-    sceneListElement.classList.remove('enabled');
-    sceneListToggleElement.classList.remove('enabled');
+    if (sceneListElement) sceneListElement.classList.remove('enabled');
+    if (sceneListToggleElement) sceneListToggleElement.classList.remove('enabled');
   }
 
   function toggleSceneList() {
-    sceneListElement.classList.toggle('enabled');
-    sceneListToggleElement.classList.toggle('enabled');
+    if (sceneListElement) sceneListElement.classList.toggle('enabled');
+    if (sceneListToggleElement) sceneListToggleElement.classList.toggle('enabled');
   }
 
   function startAutorotate() {
-    if (!autorotateToggleElement.classList.contains('enabled')) {
+    if (!autorotateToggleElement || !autorotateToggleElement.classList.contains('enabled')) {
       return;
     }
     viewer.startMovement(autorotate);
@@ -235,6 +282,8 @@
   }
 
   function toggleAutorotate() {
+    if (!autorotateToggleElement) return;
+    
     if (autorotateToggleElement.classList.contains('enabled')) {
       autorotateToggleElement.classList.remove('enabled');
       stopAutorotate();
@@ -255,12 +304,15 @@
     var icon = document.createElement('img');
     icon.src = 'img/link.png';
     icon.classList.add('link-hotspot-icon');
+    icon.alt = 'انتقال';
 
     // Set rotation transform.
-    var transformProperties = [ '-ms-transform', '-webkit-transform', 'transform' ];
-    for (var i = 0; i < transformProperties.length; i++) {
-      var property = transformProperties[i];
-      icon.style[property] = 'rotate(' + hotspot.rotation + 'rad)';
+    if (hotspot.rotation) {
+      var transformProperties = [ '-ms-transform', '-webkit-transform', 'transform' ];
+      for (var i = 0; i < transformProperties.length; i++) {
+        var property = transformProperties[i];
+        icon.style[property] = 'rotate(' + hotspot.rotation + 'rad)';
+      }
     }
 
     // Add click event handler.
@@ -269,18 +321,19 @@
     });
 
     // Prevent touch and scroll events from reaching the parent element.
-    // This prevents the view control logic from interfering with the hotspot.
     stopTouchAndScrollEventPropagation(wrapper);
 
     // Create tooltip element.
-    var tooltip = document.createElement('div');
-    tooltip.classList.add('hotspot-tooltip');
-    tooltip.classList.add('link-hotspot-tooltip');
-    tooltip.innerHTML = findSceneDataById(hotspot.target).name;
+    var targetScene = findSceneDataById(hotspot.target);
+    if (targetScene) {
+      var tooltip = document.createElement('div');
+      tooltip.classList.add('hotspot-tooltip');
+      tooltip.classList.add('link-hotspot-tooltip');
+      tooltip.innerHTML = sanitize(targetScene.name);
+      wrapper.appendChild(tooltip);
+    }
 
     wrapper.appendChild(icon);
-    wrapper.appendChild(tooltip);
-
     return wrapper;
   }
 
@@ -301,6 +354,7 @@
     var icon = document.createElement('img');
     icon.src = 'img/info.png';
     icon.classList.add('info-hotspot-icon');
+    icon.alt = 'معلومات';
     iconWrapper.appendChild(icon);
 
     // Create title element.
@@ -308,7 +362,7 @@
     titleWrapper.classList.add('info-hotspot-title-wrapper');
     var title = document.createElement('div');
     title.classList.add('info-hotspot-title');
-    title.innerHTML = hotspot.title;
+    title.innerHTML = hotspot.title || 'معلومات';
     titleWrapper.appendChild(title);
 
     // Create close element.
@@ -317,6 +371,7 @@
     var closeIcon = document.createElement('img');
     closeIcon.src = 'img/close.png';
     closeIcon.classList.add('info-hotspot-close-icon');
+    closeIcon.alt = 'إغلاق';
     closeWrapper.appendChild(closeIcon);
 
     // Construct header element.
@@ -327,7 +382,7 @@
     // Create text element.
     var text = document.createElement('div');
     text.classList.add('info-hotspot-text');
-    text.innerHTML = hotspot.text;
+    text.innerHTML = hotspot.text || '';
 
     // Place header and text into wrapper element.
     wrapper.appendChild(header);
@@ -345,20 +400,25 @@
     };
 
     // Show content when hotspot is clicked.
-    wrapper.querySelector('.info-hotspot-header').addEventListener('click', toggle);
+    var headerEl = wrapper.querySelector('.info-hotspot-header');
+    if (headerEl) {
+      headerEl.addEventListener('click', toggle);
+    }
 
     // Hide content when close icon is clicked.
-    modal.querySelector('.info-hotspot-close-wrapper').addEventListener('click', toggle);
+    var closeEl = modal.querySelector('.info-hotspot-close-wrapper');
+    if (closeEl) {
+      closeEl.addEventListener('click', toggle);
+    }
 
     // Prevent touch and scroll events from reaching the parent element.
-    // This prevents the view control logic from interfering with the hotspot.
     stopTouchAndScrollEventPropagation(wrapper);
 
     return wrapper;
   }
 
   // Prevent touch and scroll events from reaching the parent element.
-  function stopTouchAndScrollEventPropagation(element, eventList) {
+  function stopTouchAndScrollEventPropagation(element) {
     var eventList = [ 'touchstart', 'touchmove', 'touchend', 'touchcancel',
                       'wheel', 'mousewheel' ];
     for (var i = 0; i < eventList.length; i++) {
@@ -378,6 +438,7 @@
   }
 
   function findSceneDataById(id) {
+    if (!data || !data.scenes) return null;
     for (var i = 0; i < data.scenes.length; i++) {
       if (data.scenes[i].id === id) {
         return data.scenes[i];
@@ -387,63 +448,45 @@
   }
 
   // Display the initial scene.
-  switchScene(scenes[0]);
-// في نهاية ملف index.js، قبل إغلاق الدالة
-
-  // بعد إنشاء المشاهد
-  // تهيئة نظام BIM
-  window.BIM.init(viewer);
-  
-  // ربط نظام BIM بتغيير المشاهد
-  const originalSwitchScene = switchScene;
-  switchScene = function(scene) {
-    originalSwitchScene(scene);
-    window.BIM.currentScene = scene;
-    window.BIM.loadScene(scene.data.id);
-  };
-  
-  // بدء تحديث الرسم
-  window.BIM.update();
-
-  // إضافة أزرار التحكم في BIM
-  function addBIMControls() {
-    const container = document.createElement('div');
-    container.id = 'bim-controls';
-    container.style.cssText = `
-      position: fixed; bottom: 20px; left: 50%;
-      transform: translateX(-50%);
-      display: flex; gap: 10px; z-index: 1000;
-      background: rgba(0,0,0,0.8); padding: 10px 20px;
-      border-radius: 50px; backdrop-filter: blur(5px);
-    `;
-
-    const buttons = [
-      { type: 'EL', label: '⚡ كهرباء', color: '#44ff44' },
-      { type: 'PW', label: '💧 مياه', color: '#4444ff' },
-      { type: 'GS', label: '🔥 غاز', color: '#ff4444' },
-      { type: 'AC', label: '❄️ تكييف', color: '#ffaa44' }
-    ];
-
-    buttons.forEach(btn => {
-      const button = document.createElement('button');
-      button.textContent = btn.label;
-      button.style.cssText = `
-        padding: 8px 16px; border: none; border-radius: 30px;
-        background: ${btn.color}22; color: white;
-        cursor: pointer; font-weight: bold; transition: all 0.3s;
-        border: 2px solid ${btn.color};
-      `;
-      button.onclick = () => {
-        window.BIM.toggleLayer(btn.type);
-        button.style.background = window.BIM.activeLayers.has(btn.type) 
-          ? `${btn.color}44` : `${btn.color}22`;
-      };
-      container.appendChild(button);
-    });
-
-    document.body.appendChild(container);
+  if (scenes.length > 0) {
+    switchScene(scenes[0]);
   }
 
-  addBIMControls();
+  // ==================== نظام BIM ====================
+  
+  // تهيئة نظام BIM بعد تحميل المشاهد
+  setTimeout(function() {
+    if (window.BIM && viewer) {
+      try {
+        window.BIM.init(viewer);
+        console.log('✅ BIM System initialized from index.js');
+        
+        // بدء تحديث الرسم
+        window.BIM.update();
+        
+        // ربط الأزرار الموجودة في HTML
+        setupBIMButtons();
+        
+      } catch(e) {
+        console.warn('⚠️ خطأ في تهيئة BIM:', e);
+      }
+    } else {
+      console.warn('⚠️ BIM غير متاح');
+    }
+  }, 500);
+
+  // ربط أزرار BIM الموجودة في HTML
+  function setupBIMButtons() {
+    var buttons = document.querySelectorAll('.bim-btn');
+    buttons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var layer = this.getAttribute('data-layer');
+        if (layer && window.BIM) {
+          window.BIM.toggleLayer(layer);
+        }
+      });
+    });
+    console.log('✅ BIM buttons connected');
+  }
 
 })();
