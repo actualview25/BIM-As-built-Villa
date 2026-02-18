@@ -119,24 +119,4 @@
     BIM_DATA.points.forEach(p => drawPoint(p, view));
   }
 
-  /* ================================
-     CONNECT TO MARZIPANO
-     ================================ */
-
-  window.attachBIM = function (viewer) {
-    const view = viewer.view();
-
-    viewer.addEventListener("viewChange", function () {
-      render(view);
-    });
-
-    render(view);
-  };
-window.BIM = {
-  init: function(viewer) {
-    if (window.attachBIM) {
-      attachBIM(viewer);
-    }
-  }
-};
 })();
