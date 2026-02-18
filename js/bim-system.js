@@ -204,84 +204,91 @@ const BIM = {
     console.log(`📊 Drew ${totalPoints} points and ${totalLines} lines`);
   },
 
-  // رسم خط ثابت
+  // رسم خط ثابت - مع مقياس مناسب
   drawFixedLine: function(type, line) {
     const layer = this.layers[type];
     if (!layer || !layer.svg) return;
 
     try {
-      const scale = 1000;
-      const offsetX = 500;
-      const offsetY = 300;
+      // مقياس مناسب للشاشة - القيم الجديدة!
+      const scale = 300; // مقياس أصغر بكثير
+      const offsetX = window.innerWidth / 2; // منتصف الشاشة
+      const offsetY = window.innerHeight / 2; // منتصف الشاشة
       
       const x1 = offsetX + (line.from.yaw * scale);
       const y1 = offsetY + (line.from.pitch * scale);
       const x2 = offsetX + (line.to.yaw * scale);
       const y2 = offsetY + (line.to.pitch * scale);
 
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const d = `M ${x1} ${y1} L ${x2} ${y2}`;
-      
-      path.setAttribute('d', d);
-      path.setAttribute('stroke', layer.color);
-      path.setAttribute('stroke-width', '4');
-      path.setAttribute('stroke-dasharray', layer.dash);
-      path.setAttribute('fill', 'none');
-      path.setAttribute('class', `fixed-line ${type}-line`);
-      path.setAttribute('data-line', line.id);
+      // التحقق من أن النقاط ضمن نطاق معقول
+      if (x1 > -1000 && x1 < 3000 && y1 > -1000 && y1 < 2000) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const d = `M ${x1} ${y1} L ${x2} ${y2}`;
+        
+        path.setAttribute('d', d);
+        path.setAttribute('stroke', layer.color);
+        path.setAttribute('stroke-width', '3');
+        path.setAttribute('stroke-dasharray', layer.dash);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('class', `fixed-line ${type}-line`);
+        path.setAttribute('data-line', line.id);
 
-      layer.svg.appendChild(path);
+        layer.svg.appendChild(path);
+      }
     } catch(e) {
       console.warn('Error drawing fixed line:', e);
     }
   },
 
-  // رسم نقطة ثابتة
+  // رسم نقطة ثابتة - مع مقياس مناسب
   drawFixedPoint: function(type, point) {
     const layer = this.layers[type];
     if (!layer || !layer.svg) return;
 
     try {
-      const scale = 1000;
-      const offsetX = 500;
-      const offsetY = 300;
+      // مقياس مناسب للشاشة
+      const scale = 300; // مقياس أصغر بكثير
+      const offsetX = window.innerWidth / 2; // منتصف الشاشة
+      const offsetY = window.innerHeight / 2; // منتصف الشاشة
       
       const x = offsetX + (point.yaw * scale);
       const y = offsetY + (point.pitch * scale);
 
-      // دائرة النقطة
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', x);
-      circle.setAttribute('cy', y);
-      circle.setAttribute('r', '12');
-      circle.setAttribute('fill', layer.color);
-      circle.setAttribute('stroke', 'white');
-      circle.setAttribute('stroke-width', '3');
-      circle.setAttribute('data-id', point.id);
-      circle.setAttribute('class', 'fixed-point');
-      circle.setAttribute('data-type', this.getNodeType(point.id));
-      circle.style.cursor = 'pointer';
-      circle.style.pointerEvents = 'auto';
-      
-      circle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.showPointInfo(point);
-      });
+      // التحقق من أن النقطة ضمن نطاق معقول
+      if (x > -1000 && x < 3000 && y > -1000 && y < 2000) {
+        // دائرة النقطة
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', '8'); // أصغر قليلاً
+        circle.setAttribute('fill', layer.color);
+        circle.setAttribute('stroke', 'white');
+        circle.setAttribute('stroke-width', '2');
+        circle.setAttribute('data-id', point.id);
+        circle.setAttribute('class', 'fixed-point');
+        circle.setAttribute('data-type', this.getNodeType(point.id));
+        circle.style.cursor = 'pointer';
+        circle.style.pointerEvents = 'auto';
+        
+        circle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.showPointInfo(point);
+        });
 
-      layer.svg.appendChild(circle);
+        layer.svg.appendChild(circle);
 
-      // إضافة نص التسمية
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', x + 15);
-      text.setAttribute('y', y - 10);
-      text.setAttribute('fill', 'white');
-      text.setAttribute('font-size', '12');
-      text.setAttribute('stroke', 'black');
-      text.setAttribute('stroke-width', '0.5');
-      text.textContent = point.id;
-      
-      layer.svg.appendChild(text);
-
+        // إضافة نص التسمية - بحجم أصغر
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x + 10);
+        text.setAttribute('y', y - 8);
+        text.setAttribute('fill', 'white');
+        text.setAttribute('font-size', '10');
+        text.setAttribute('stroke', 'black');
+        text.setAttribute('stroke-width', '0.5');
+        text.textContent = point.id;
+        
+        layer.svg.appendChild(text);
+      }
     } catch(e) {
       console.warn('Error drawing fixed point:', e);
     }
@@ -326,7 +333,7 @@ const BIM = {
     return 'غير معروف';
   },
 
-  // دالة اختبار
+  // دالة اختبار - مع مقياس مناسب
   testDraw: function() {
     console.log('🧪 Testing draw with sample points');
     
@@ -337,7 +344,8 @@ const BIM = {
     
     const testPoints = [
       { id: 'EL-SEN-TEST', yaw: 0, pitch: 0, sceneId: this.currentScene.data.id, connections: [], text: 'نقطة اختبار' },
-      { id: 'END-EL-TEST', yaw: 0.5, pitch: 0.2, sceneId: this.currentScene.data.id, connections: ['EL-SEN-TEST'], text: 'نقطة نهاية اختبار' }
+      { id: 'END-EL-TEST', yaw: 0.5, pitch: 0.2, sceneId: this.currentScene.data.id, connections: ['EL-SEN-TEST'], text: 'نقطة نهاية اختبار' },
+      { id: 'END-EL-TEST2', yaw: -0.5, pitch: -0.2, sceneId: this.currentScene.data.id, connections: ['EL-SEN-TEST'], text: 'نقطة نهاية يسار' }
     ];
     
     Object.keys(this.layers).forEach(type => {
@@ -346,12 +354,20 @@ const BIM = {
         id: p.id.replace('EL', type)
       }));
       
-      this.layers[type].lines = [{
-        sceneId: this.currentScene.data.id,
-        from: { yaw: 0, pitch: 0 },
-        to: { yaw: 0.5, pitch: 0.2 },
-        id: 'test-line'
-      }];
+      this.layers[type].lines = [
+        {
+          sceneId: this.currentScene.data.id,
+          from: { yaw: 0, pitch: 0 },
+          to: { yaw: 0.5, pitch: 0.2 },
+          id: 'test-line-1'
+        },
+        {
+          sceneId: this.currentScene.data.id,
+          from: { yaw: 0, pitch: 0 },
+          to: { yaw: -0.5, pitch: -0.2 },
+          id: 'test-line-2'
+        }
+      ];
     });
     
     this.drawCurrentScene();
@@ -434,7 +450,7 @@ const BIM = {
     });
     this.loadHotspotsFromData();
     this.drawCurrentScene();
-    this.showAllLayers(); // تأكيد إظهار كل الطبقات بعد إعادة التحميل
+    this.showAllLayers();
   }
 };
 
