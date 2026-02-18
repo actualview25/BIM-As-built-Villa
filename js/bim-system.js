@@ -17,8 +17,13 @@ const BIM = {
     this.viewer = viewer;
     this.scenes = scenesList;
     this.createSVGLayers();
-    this.loadHotspotsFromData();
-    console.log('✅ BIM System initialized');
+    
+    // تأخير تحميل البيانات للتأكد من وجود المشاهد
+    setTimeout(() => {
+      this.loadHotspotsFromData();
+      console.log('✅ BIM System initialized');
+    }, 500);
+    
     return this;
   },
 
@@ -50,9 +55,12 @@ const BIM = {
     }
 
     let totalHotspots = 0;
+    console.log('📊 Loading hotspots from scenes...');
 
     this.scenes.forEach(scene => {
       const hotspots = scene.data.infoHotspots || [];
+      console.log(`Scene ${scene.data.id}: ${hotspots.length} hotspots`);
+      
       const scenePoints = [];
       
       hotspots.forEach(hotspot => {
@@ -89,6 +97,11 @@ const BIM = {
     });
 
     console.log(`✅ Loaded ${totalHotspots} hotspots:`, this.getStats());
+    
+    // إذا كان هناك مشهد حالي، نرسمه
+    if (this.currentScene) {
+      this.drawCurrentScene();
+    }
   },
 
   // بناء خطوط ثابتة للمشهد
@@ -117,7 +130,8 @@ const BIM = {
   // تنظيف النص من وسوم HTML
   cleanText: function(html) {
     if (!html) return '';
-    return html.replace(/<[^>]*>/g, '').trim();
+    // إزالة وسوم HTML والمسافات الزائدة
+    return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
   },
 
   // تحليل الاتصالات من النص
@@ -150,13 +164,14 @@ const BIM = {
   drawCurrentScene: function() {
     if (!this.currentScene || !this.viewer) {
       console.warn('⚠️ Cannot draw: no current scene or viewer');
-      console.log('currentScene:', this.currentScene);
-      console.log('viewer:', this.viewer);
       return;
     }
 
     const sceneId = this.currentScene.data.id;
     console.log(`🎨 Drawing scene: ${sceneId}`);
+    
+    let totalPoints = 0;
+    let totalLines = 0;
     
     Object.keys(this.layers).forEach(type => {
       const layer = this.layers[type];
@@ -170,29 +185,29 @@ const BIM = {
       sceneLines.forEach(line => {
         this.drawFixedLine(type, line);
       });
+      totalLines += sceneLines.length;
 
       // ثم رسم النقاط
       const points = layer.points.filter(p => p.sceneId === sceneId);
       points.forEach(point => {
         this.drawFixedPoint(type, point);
       });
-      
-      console.log(`  ${type}: ${points.length} points, ${sceneLines.length} lines`);
+      totalPoints += points.length;
       
       // إظهار/إخفاء حسب الحالة
       layer.svg.style.display = layer.visible ? 'block' : 'none';
     });
+    
+    console.log(`📊 Drew ${totalPoints} points and ${totalLines} lines`);
   },
 
-  // رسم خط ثابت (يتم رسمه مرة واحدة فقط)
+  // رسم خط ثابت
   drawFixedLine: function(type, line) {
     const layer = this.layers[type];
     if (!layer || !layer.svg) return;
 
     try {
-      // تحويل الإحداثيات الزاوية إلى إحداثيات SVG ثابتة
-      // نستخدم Scale كبير لتحويل الراديان إلى pixels
-      const scale = 1000; // عامل التحويل
+      const scale = 1000;
       const offsetX = 500;
       const offsetY = 300;
       
@@ -202,8 +217,6 @@ const BIM = {
       const y2 = offsetY + (line.to.pitch * scale);
 
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      
-      // رسم خط
       const d = `M ${x1} ${y1} L ${x2} ${y2}`;
       
       path.setAttribute('d', d);
@@ -226,8 +239,7 @@ const BIM = {
     if (!layer || !layer.svg) return;
 
     try {
-      // تحويل الإحداثيات الزاوية إلى إحداثيات SVG ثابتة
-      const scale = 1000; // عامل التحويل
+      const scale = 1000;
       const offsetX = 500;
       const offsetY = 300;
       
@@ -311,7 +323,7 @@ const BIM = {
     return 'غير معروف';
   },
 
-  // دالة اختبار لرسم نقاط تجريبية
+  // دالة اختبار
   testDraw: function() {
     console.log('🧪 Testing draw with sample points');
     
@@ -320,34 +332,17 @@ const BIM = {
       return;
     }
     
-    // نقاط تجريبية
     const testPoints = [
-      { 
-        id: 'EL-SEN-TEST', 
-        yaw: 0, 
-        pitch: 0, 
-        sceneId: this.currentScene.data.id,
-        connections: [],
-        text: 'نقطة اختبار'
-      },
-      { 
-        id: 'END-EL-TEST', 
-        yaw: 0.5, 
-        pitch: 0.2, 
-        sceneId: this.currentScene.data.id,
-        connections: ['EL-SEN-TEST'],
-        text: 'نقطة نهاية اختبار'
-      }
+      { id: 'EL-SEN-TEST', yaw: 0, pitch: 0, sceneId: this.currentScene.data.id, connections: [], text: 'نقطة اختبار' },
+      { id: 'END-EL-TEST', yaw: 0.5, pitch: 0.2, sceneId: this.currentScene.data.id, connections: ['EL-SEN-TEST'], text: 'نقطة نهاية اختبار' }
     ];
     
-    // إضافة نقاط اختبار لكل طبقة
     Object.keys(this.layers).forEach(type => {
       this.layers[type].points = testPoints.map(p => ({
         ...p,
         id: p.id.replace('EL', type)
       }));
       
-      // بناء خطوط اختبار
       this.layers[type].lines = [{
         sceneId: this.currentScene.data.id,
         from: { yaw: 0, pitch: 0 },
@@ -360,7 +355,7 @@ const BIM = {
     console.log('✅ Test draw completed');
   },
 
-  // دالة احتياطية للتوافق
+  // دالة احتياطية
   loadScene: function(sceneId) {
     console.log('⚠️ loadScene called - using drawCurrentScene instead');
     if (this.currentScene) {
@@ -371,24 +366,13 @@ const BIM = {
   // إظهار/إخفاء طبقة
   toggleLayer: function(type) {
     const layer = this.layers[type];
-    if (!layer) {
-      console.warn(`⚠️ Layer ${type} not found`);
-      return;
-    }
+    if (!layer) return;
     
     layer.visible = !layer.visible;
+    if (layer.svg) layer.svg.style.display = layer.visible ? 'block' : 'none';
     
-    if (layer.svg) {
-      layer.svg.style.display = layer.visible ? 'block' : 'none';
-    }
-    
-    // تحديث شكل الزر
     document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => {
-      if (layer.visible) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
+      btn.classList.toggle('active', layer.visible);
     });
     
     console.log(`${type} is now ${layer.visible ? 'visible' : 'hidden'}`);
@@ -407,54 +391,35 @@ const BIM = {
   },
 
   // تحديث الرسم
-  update: function() {
-    // لا حاجة للتحديث المستمر لأن الرسم ثابت
-    // نتركها فارغة لمنع الأخطاء
-  },
-  
-  // إظهار كل الطبقات
+  update: function() {},
+
   showAllLayers: function() {
     Object.keys(this.layers).forEach(type => {
-      const layer = this.layers[type];
-      layer.visible = true;
-      if (layer.svg) layer.svg.style.display = 'block';
-      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => {
-        btn.classList.add('active');
-      });
+      this.layers[type].visible = true;
+      if (this.layers[type].svg) this.layers[type].svg.style.display = 'block';
+      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => btn.classList.add('active'));
     });
-    console.log('👁️ All layers shown');
     this.drawCurrentScene();
   },
-  
-  // إخفاء كل الطبقات
+
   hideAllLayers: function() {
     Object.keys(this.layers).forEach(type => {
-      const layer = this.layers[type];
-      layer.visible = false;
-      if (layer.svg) layer.svg.style.display = 'none';
-      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => {
-        btn.classList.remove('active');
-      });
+      this.layers[type].visible = false;
+      if (this.layers[type].svg) this.layers[type].svg.style.display = 'none';
+      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => btn.classList.remove('active'));
     });
-    console.log('👁️ All layers hidden');
   },
-  
-  // إعادة تحميل البيانات
+
   reloadData: function() {
     console.log('🔄 Reloading hotspot data...');
-    // مسح النقاط القديمة
     Object.keys(this.layers).forEach(type => {
       this.layers[type].points = [];
       this.layers[type].lines = [];
     });
-    // إعادة التحميل
     this.loadHotspotsFromData();
     this.drawCurrentScene();
   }
 };
 
-// تعريف للعالمية
 window.BIM = BIM;
-
-// رسالة تأكيد التحميل
-console.log('📦 BIM System loaded and ready - FIXED MODE');
+console.log('📦 BIM System loaded and ready');
