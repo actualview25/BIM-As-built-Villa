@@ -21,19 +21,7 @@ const BIM = {
     console.log('✅ BIM System initialized');
     return this;
   },
-// دالة اختبار لرسم نقاط تجريبية
-testDraw: function() {
-  console.log('🧪 Testing draw with sample points');
-  
-  // نقاط تجريبية
-  const testPoints = [
-    { id: 'EL-SEN-TEST', yaw: 0, pitch: 0, sceneId: this.currentScene?.data.id },
-    { id: 'END-EL-TEST', yaw: 0.5, pitch: 0.2, sceneId: this.currentScene?.data.id }
-  ];
-  
-  this.layers['EL'].points = testPoints;
-  this.drawCurrentScene();
-},
+
   // إنشاء طبقات SVG
   createSVGLayers: function() {
     const overlay = document.getElementById('bim-overlay');
@@ -162,10 +150,13 @@ testDraw: function() {
   drawCurrentScene: function() {
     if (!this.currentScene || !this.viewer) {
       console.warn('⚠️ Cannot draw: no current scene or viewer');
+      console.log('currentScene:', this.currentScene);
+      console.log('viewer:', this.viewer);
       return;
     }
 
     const sceneId = this.currentScene.data.id;
+    console.log(`🎨 Drawing scene: ${sceneId}`);
     
     Object.keys(this.layers).forEach(type => {
       const layer = this.layers[type];
@@ -186,6 +177,8 @@ testDraw: function() {
         this.drawFixedPoint(type, point);
       });
       
+      console.log(`  ${type}: ${points.length} points, ${sceneLines.length} lines`);
+      
       // إظهار/إخفاء حسب الحالة
       layer.svg.style.display = layer.visible ? 'block' : 'none';
     });
@@ -200,15 +193,17 @@ testDraw: function() {
       // تحويل الإحداثيات الزاوية إلى إحداثيات SVG ثابتة
       // نستخدم Scale كبير لتحويل الراديان إلى pixels
       const scale = 1000; // عامل التحويل
+      const offsetX = 500;
+      const offsetY = 300;
       
-      const x1 = 500 + (line.from.yaw * scale);
-      const y1 = 300 + (line.from.pitch * scale);
-      const x2 = 500 + (line.to.yaw * scale);
-      const y2 = 300 + (line.to.pitch * scale);
+      const x1 = offsetX + (line.from.yaw * scale);
+      const y1 = offsetY + (line.from.pitch * scale);
+      const x2 = offsetX + (line.to.yaw * scale);
+      const y2 = offsetY + (line.to.pitch * scale);
 
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       
-      // رسم خط منحني أو مستقيم حسب الحاجة
+      // رسم خط
       const d = `M ${x1} ${y1} L ${x2} ${y2}`;
       
       path.setAttribute('d', d);
@@ -216,7 +211,7 @@ testDraw: function() {
       path.setAttribute('stroke-width', '4');
       path.setAttribute('stroke-dasharray', layer.dash);
       path.setAttribute('fill', 'none');
-      path.setAttribute('class', `${type.toLowerCase()}-path fixed-line`);
+      path.setAttribute('class', `fixed-line ${type}-line`);
       path.setAttribute('data-line', line.id);
 
       layer.svg.appendChild(path);
@@ -233,9 +228,11 @@ testDraw: function() {
     try {
       // تحويل الإحداثيات الزاوية إلى إحداثيات SVG ثابتة
       const scale = 1000; // عامل التحويل
+      const offsetX = 500;
+      const offsetY = 300;
       
-      const x = 500 + (point.yaw * scale);
-      const y = 300 + (point.pitch * scale);
+      const x = offsetX + (point.yaw * scale);
+      const y = offsetY + (point.pitch * scale);
 
       // دائرة النقطة
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -247,6 +244,7 @@ testDraw: function() {
       circle.setAttribute('stroke-width', '3');
       circle.setAttribute('data-id', point.id);
       circle.setAttribute('class', 'fixed-point');
+      circle.setAttribute('data-type', this.getNodeType(point.id));
       circle.style.cursor = 'pointer';
       circle.style.pointerEvents = 'auto';
       
@@ -272,6 +270,14 @@ testDraw: function() {
     } catch(e) {
       console.warn('Error drawing fixed point:', e);
     }
+  },
+
+  // تحديد نوع العقدة
+  getNodeType: function(id) {
+    if (id.includes('SEN')) return 'source';
+    if (id.includes('JN')) return 'junction';
+    if (id.includes('END')) return 'endpoint';
+    return 'unknown';
   },
 
   // عرض معلومات النقطة
@@ -303,6 +309,55 @@ testDraw: function() {
     if (id.includes('GS')) return '🔥 غاز';
     if (id.includes('AC')) return '❄️ تكييف';
     return 'غير معروف';
+  },
+
+  // دالة اختبار لرسم نقاط تجريبية
+  testDraw: function() {
+    console.log('🧪 Testing draw with sample points');
+    
+    if (!this.currentScene) {
+      console.warn('⚠️ No current scene, cannot test draw');
+      return;
+    }
+    
+    // نقاط تجريبية
+    const testPoints = [
+      { 
+        id: 'EL-SEN-TEST', 
+        yaw: 0, 
+        pitch: 0, 
+        sceneId: this.currentScene.data.id,
+        connections: [],
+        text: 'نقطة اختبار'
+      },
+      { 
+        id: 'END-EL-TEST', 
+        yaw: 0.5, 
+        pitch: 0.2, 
+        sceneId: this.currentScene.data.id,
+        connections: ['EL-SEN-TEST'],
+        text: 'نقطة نهاية اختبار'
+      }
+    ];
+    
+    // إضافة نقاط اختبار لكل طبقة
+    Object.keys(this.layers).forEach(type => {
+      this.layers[type].points = testPoints.map(p => ({
+        ...p,
+        id: p.id.replace('EL', type)
+      }));
+      
+      // بناء خطوط اختبار
+      this.layers[type].lines = [{
+        sceneId: this.currentScene.data.id,
+        from: { yaw: 0, pitch: 0 },
+        to: { yaw: 0.5, pitch: 0.2 },
+        id: 'test-line'
+      }];
+    });
+    
+    this.drawCurrentScene();
+    console.log('✅ Test draw completed');
   },
 
   // دالة احتياطية للتوافق
@@ -351,14 +406,55 @@ testDraw: function() {
     return stats;
   },
 
-  // تحديث الرسم (الآن لا يفعل شيئاً لأن الرسم ثابت)
+  // تحديث الرسم
   update: function() {
     // لا حاجة للتحديث المستمر لأن الرسم ثابت
     // نتركها فارغة لمنع الأخطاء
+  },
+  
+  // إظهار كل الطبقات
+  showAllLayers: function() {
+    Object.keys(this.layers).forEach(type => {
+      const layer = this.layers[type];
+      layer.visible = true;
+      if (layer.svg) layer.svg.style.display = 'block';
+      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => {
+        btn.classList.add('active');
+      });
+    });
+    console.log('👁️ All layers shown');
+    this.drawCurrentScene();
+  },
+  
+  // إخفاء كل الطبقات
+  hideAllLayers: function() {
+    Object.keys(this.layers).forEach(type => {
+      const layer = this.layers[type];
+      layer.visible = false;
+      if (layer.svg) layer.svg.style.display = 'none';
+      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => {
+        btn.classList.remove('active');
+      });
+    });
+    console.log('👁️ All layers hidden');
+  },
+  
+  // إعادة تحميل البيانات
+  reloadData: function() {
+    console.log('🔄 Reloading hotspot data...');
+    // مسح النقاط القديمة
+    Object.keys(this.layers).forEach(type => {
+      this.layers[type].points = [];
+      this.layers[type].lines = [];
+    });
+    // إعادة التحميل
+    this.loadHotspotsFromData();
+    this.drawCurrentScene();
   }
 };
 
 // تعريف للعالمية
 window.BIM = BIM;
 
+// رسالة تأكيد التحميل
 console.log('📦 BIM System loaded and ready - FIXED MODE');
