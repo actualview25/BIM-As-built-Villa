@@ -1,122 +1,82 @@
-/* ================================
-   BIM CORE – SINGLE SOURCE OF TRUTH
-   ================================ */
+// ==================== bim-core.js ====================
+window.BIM = (function(){
 
-(function () {
+  const BIM = {};
 
-  const overlay = document.getElementById("bim-overlay");
+  BIM.layers = {};           // تخزين كل طبقة
+  BIM.currentScene = null;   // المشهد الحالي
+  BIM.viewer = null;         // Marzipano viewer
+  BIM.scenes = null;         // قائمة المشاهد
 
-  const svgNS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(svgNS, "svg");
+  // تهيئة النظام
+  BIM.init = function(viewer, scenes) {
+    BIM.viewer = viewer;
+    BIM.scenes = scenes;
 
-  svg.setAttribute("width", "100%");
-  svg.setAttribute("height", "100%");
-  svg.style.position = "absolute";
-  svg.style.top = 0;
-  svg.style.left = 0;
+    // ربط الطبقات بالـ DOM
+    BIM.layers = {
+      EL: document.getElementById('layer-EL'),
+      PW: document.getElementById('layer-PW'),
+      GS: document.getElementById('layer-GS'),
+      AC: document.getElementById('layer-AC')
+    };
 
-  overlay.appendChild(svg);
-
-  /* ================================
-     DATA STRUCTURE
-     ================================ */
-
-  const BIM_DATA = {
-    points: [
-      {
-        id: "P1",
-        yaw: 0.2,
-        pitch: -0.05,
-        label: "Main Panel"
-      },
-      {
-        id: "P2",
-        yaw: 0.6,
-        pitch: -0.1,
-        label: "Water Riser"
-      }
-    ],
-
-    lines: [
-      {
-        from: "P1",
-        to: "P2",
-        type: "electric"
-      }
-    ]
-  };
-
-  /* ================================
-     VIEW PROJECTION (THE HEART)
-     ================================ */
-
-  function project(point, view) {
-    const yaw = view.yaw();
-    const pitch = view.pitch();
-    const fov = view.fov();
-
-    const x =
-      (0.5 + (point.yaw - yaw) / fov) * window.innerWidth;
-
-    const y =
-      (0.5 - (point.pitch - pitch) / fov) * window.innerHeight;
-
-    return { x, y };
-  }
-
-  /* ================================
-     DRAWING
-     ================================ */
-
-  function clear() {
-    while (svg.firstChild) {
-      svg.removeChild(svg.firstChild);
-    }
-  }
-
-  function drawPoint(point, view) {
-    const p = project(point, view);
-
-    const circle = document.createElementNS(svgNS, "circle");
-    circle.setAttribute("cx", p.x);
-    circle.setAttribute("cy", p.y);
-    circle.setAttribute("r", 6);
-    circle.setAttribute("fill", "#00ffcc");
-
-    svg.appendChild(circle);
-  }
-
-  function drawLine(p1, p2, view) {
-    const a = project(p1, view);
-    const b = project(p2, view);
-
-    const line = document.createElementNS(svgNS, "line");
-    line.setAttribute("x1", a.x);
-    line.setAttribute("y1", a.y);
-    line.setAttribute("x2", b.x);
-    line.setAttribute("y2", b.y);
-    line.setAttribute("stroke", "#ffaa00");
-    line.setAttribute("stroke-width", 2);
-
-    svg.appendChild(line);
-  }
-
-  /* ================================
-     RENDER LOOP
-     ================================ */
-
-  function render(view) {
-    clear();
-
-    // draw lines
-    BIM_DATA.lines.forEach(l => {
-      const p1 = BIM_DATA.points.find(p => p.id === l.from);
-      const p2 = BIM_DATA.points.find(p => p.id === l.to);
-      if (p1 && p2) drawLine(p1, p2, view);
+    // تأكد أن كل طبقة موجودة
+    Object.entries(BIM.layers).forEach(([name, layer]) => {
+      if (!layer) console.warn(`⚠️ BIM layer ${name} not found`);
+      else layer.style.position = 'absolute';
     });
 
-    // draw points
-    BIM_DATA.points.forEach(p => drawPoint(p, view));
-  }
+    // ربط أزرار التبديل لكل طبقة
+    const buttons = document.querySelectorAll('.bim-btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+        const layerName = this.getAttribute('data-layer');
+        if(layerName) BIM.toggleLayer(layerName);
+        BIM.drawCurrentScene();
+      });
+    });
+
+    console.log('✅ BIM initialized');
+  };
+
+  // تبديل الطبقة
+  BIM.toggleLayer = function(name) {
+    const layer = BIM.layers[name];
+    if(!layer) return;
+    layer.style.display = (layer.style.display === 'none' || !layer.style.display) ? 'block' : 'none';
+  };
+
+  // رسم الطبقات في المشهد الحالي
+  BIM.drawCurrentScene = function() {
+    const scene = BIM.currentScene;
+    if(!scene) return;
+
+    // كل طبقة، يمكن لاحقًا إضافة فلترة حسب scene.data
+    Object.values(BIM.layers).forEach(layer=>{
+      if(layer) layer.style.display = 'block';
+    });
+
+    // مزامنة الطبقات مع الكاميرا (yaw/pitch)
+    if(BIM.viewer && scene.view) {
+      const view = scene.view;
+      Object.values(BIM.layers).forEach(layer=>{
+        if(!layer) return;
+        const yaw = view.yaw();
+        const pitch = view.pitch();
+        layer.style.transform = `translate(-50%, -50%) rotateY(${yaw}rad) rotateX(${pitch}rad)`;
+      });
+    }
+  };
+
+  // تحديث مستمر للطبقات عند تحريك الكاميرا
+  BIM.update = function() {
+    if(!BIM.currentScene || !BIM.viewer) return;
+    BIM.drawCurrentScene();
+    requestAnimationFrame(BIM.update);
+  };
+
+  return BIM;
 
 })();
