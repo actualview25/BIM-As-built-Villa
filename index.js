@@ -458,26 +458,32 @@
     switchScene(scenes[0]);
   }
 
-  // ==================== نظام BIM الموحد ====================
+ // ==================== نظام BIM الموحد ====================
   
   // تهيئة نظام BIM بعد تحميل المشاهد
   setTimeout(function() {
     if (window.BIM && viewer && scenes) {
       try {
+        console.log('🚀 Starting BIM initialization...');
+        
         // تهيئة النظام
-        if (typeof window.BIM.init === 'function') {
-          window.BIM.init(viewer, scenes);
-        }
+        window.BIM.init(viewer, scenes);
         
-        // تعيين المشهد الحالي
+        // الأهم: تعيين المشهد الحالي
         if (scenes.length > 0) {
+          console.log('🎯 Setting current scene to:', scenes[0].data.name);
           window.BIM.currentScene = scenes[0];
-          if (typeof window.BIM.drawCurrentScene === 'function') {
-            window.BIM.drawCurrentScene();
-          }
+          
+          // فرض الرسم بعد تأخير بسيط
+          setTimeout(() => {
+            if (window.BIM && window.BIM.currentScene) {
+              console.log('🎨 Forcing draw...');
+              window.BIM.drawCurrentScene();
+            }
+          }, 500);
         }
         
-        // بدء التحديث المستمر
+        // بدء التحديث المستمر (اختياري الآن)
         if (typeof window.BIM.update === 'function') {
           window.BIM.update();
         }
@@ -492,6 +498,8 @@
             const layer = this.getAttribute('data-layer');
             if (layer && window.BIM && typeof window.BIM.toggleLayer === 'function') {
               window.BIM.toggleLayer(layer);
+              // إعادة الرسم بعد التبديل
+              setTimeout(() => window.BIM.drawCurrentScene(), 50);
             }
           });
         });
