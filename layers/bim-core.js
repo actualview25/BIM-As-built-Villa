@@ -1,82 +1,75 @@
-// ==================== bim-core.js ====================
-window.BIM = (function(){
+class BIMSystem {
+  constructor() {
+    this.nodes = [];         // كل الـ nodes من كل الأنظمة
+    this.layers = {};        // عناصر DOM لكل طبقة
+    this.systems = {};       // الأنظمة الفرعية: EL, GS, AC, PW
+  }
 
-  const BIM = {};
-
-  BIM.layers = {};           // تخزين كل طبقة
-  BIM.currentScene = null;   // المشهد الحالي
-  BIM.viewer = null;         // Marzipano viewer
-  BIM.scenes = null;         // قائمة المشاهد
-
-  // تهيئة النظام
-  BIM.init = function(viewer, scenes) {
-    BIM.viewer = viewer;
-    BIM.scenes = scenes;
-
-    // ربط الطبقات بالـ DOM
-    BIM.layers = {
-      EL: document.getElementById('layer-EL'),
-      PW: document.getElementById('layer-PW'),
-      GS: document.getElementById('layer-GS'),
-      AC: document.getElementById('layer-AC')
+  // تهيئة الأنظمة وربط الـ DOM
+  init() {
+    // ربط الأنظمة الفرعية
+    this.systems = {
+      EL: new ElectricalSystem(this),
+      GS: new GasSystem(this),
+      AC: new HVACSystem(this),
+      PW: new PlumbingSystem(this)
     };
 
-    // تأكد أن كل طبقة موجودة
-    Object.entries(BIM.layers).forEach(([name, layer]) => {
-      if (!layer) console.warn(`⚠️ BIM layer ${name} not found`);
-      else layer.style.position = 'absolute';
-    });
+    // التأكد من وجود div لكل طبقة
+    Object.keys(this.systems).forEach(type => {
+      const layer = document.querySelector(`#layer-${type}`);
+      if (!layer) {
+        console.warn(`Layer DOM for ${type} not found!`);
+        return;
+      }
+      this.layers[type] = layer;
 
-    // ربط أزرار التبديل لكل طبقة
-    const buttons = document.querySelectorAll('.bim-btn');
-    buttons.forEach(btn => {
-      btn.addEventListener('click', function(e){
-        e.preventDefault();
-        const layerName = this.getAttribute('data-layer');
-        if(layerName) BIM.toggleLayer(layerName);
-        BIM.drawCurrentScene();
+      // إضافة SVG داخل كل div إذا لم يكن موجود
+      let svg = layer.querySelector('svg');
+      if (!svg) {
+        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', '100%');
+        layer.appendChild(svg);
+      }
+
+      // رسم كل nodes الموجودة في النظام
+      if (this.systems[type].nodes) {
+        this.systems[type].nodes.forEach(node => {
+          this.systems[type].drawSpecial(node, svg, node.x, node.y);
+        });
+      }
+    });
+  }
+
+  // تبديل الطبقة المرئية
+  showLayer(type) {
+    Object.keys(this.layers).forEach(t => {
+      this.layers[t].style.display = t === type ? 'block' : 'none';
+    });
+  }
+
+  // تحديث جميع الـ Hotspots في الطبقات الظاهرة
+  update() {
+    Object.keys(this.systems).forEach(type => {
+      const layer = this.layers[type];
+      if (!layer || layer.style.display === 'none') return;
+
+      const svg = layer.querySelector('svg');
+      // مسح الرموز القديمة
+      svg.querySelectorAll('text, circle, path').forEach(el => el.remove());
+
+      // رسم جميع nodes الحالية
+      this.systems[type].nodes.forEach(node => {
+        this.systems[type].drawSpecial(node, svg, node.x, node.y);
       });
     });
+  }
+}
 
-    console.log('✅ BIM initialized');
-  };
+// تهيئة النظام
+const BIM = new BIMSystem();
+BIM.init();
 
-  // تبديل الطبقة
-  BIM.toggleLayer = function(name) {
-    const layer = BIM.layers[name];
-    if(!layer) return;
-    layer.style.display = (layer.style.display === 'none' || !layer.style.display) ? 'block' : 'none';
-  };
-
-  // رسم الطبقات في المشهد الحالي
-  BIM.drawCurrentScene = function() {
-    const scene = BIM.currentScene;
-    if(!scene) return;
-
-    // كل طبقة، يمكن لاحقًا إضافة فلترة حسب scene.data
-    Object.values(BIM.layers).forEach(layer=>{
-      if(layer) layer.style.display = 'block';
-    });
-
-    // مزامنة الطبقات مع الكاميرا (yaw/pitch)
-    if(BIM.viewer && scene.view) {
-      const view = scene.view;
-      Object.values(BIM.layers).forEach(layer=>{
-        if(!layer) return;
-        const yaw = view.yaw();
-        const pitch = view.pitch();
-        layer.style.transform = `translate(-50%, -50%) rotateY(${yaw}rad) rotateX(${pitch}rad)`;
-      });
-    }
-  };
-
-  // تحديث مستمر للطبقات عند تحريك الكاميرا
-  BIM.update = function() {
-    if(!BIM.currentScene || !BIM.viewer) return;
-    BIM.drawCurrentScene();
-    requestAnimationFrame(BIM.update);
-  };
-
-  return BIM;
-
-})();
+// مثال لتبديل الطبقة إلى الكهرباء
+// BIM.showLayer('EL');
