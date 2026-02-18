@@ -132,5 +132,11 @@
 
     render(view);
   };
-
+window.BIM = {
+  init: function(viewer) {
+    if (window.attachBIM) {
+      attachBIM(viewer);
+    }
+  }
+};
 })();
