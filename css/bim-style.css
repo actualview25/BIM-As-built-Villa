@@ -177,3 +177,30 @@
 .PW-path { stroke: #4444ff; }
 .GS-path { stroke: #ff4444; }
 .AC-path { stroke: #ffaa44; }
+
+
+/* أنماط العناصر الثابتة */
+.fixed-point {
+  transition: r 0.2s, filter 0.2s;
+}
+
+.fixed-point:hover {
+  r: 16;
+  filter: drop-shadow(0 0 10px gold);
+}
+
+.fixed-line {
+  transition: stroke-width 0.2s;
+}
+
+.fixed-line:hover {
+  stroke-width: 6;
+}
+
+/* تسميات النقاط */
+#bim-overlay text {
+  font-family: Arial, sans-serif;
+  pointer-events: none;
+  user-select: none;
+  text-shadow: 1px 1px 2px black;
+}
