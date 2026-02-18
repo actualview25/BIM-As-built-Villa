@@ -22,6 +22,9 @@ const BIM = {
     setTimeout(() => {
       this.loadHotspotsFromData();
       console.log('✅ BIM System initialized');
+      
+      // إظهار كل الطبقات تلقائياً بعد التحميل
+      this.showAllLayers();
     }, 500);
     
     return this;
@@ -194,7 +197,7 @@ const BIM = {
       });
       totalPoints += points.length;
       
-      // إظهار/إخفاء حسب الحالة
+      // إظهار/إخفاء حسب الحالة - تأكد من أنها مرئية
       layer.svg.style.display = layer.visible ? 'block' : 'none';
     });
     
@@ -393,23 +396,36 @@ const BIM = {
   // تحديث الرسم
   update: function() {},
 
+  // إظهار كل الطبقات
   showAllLayers: function() {
+    console.log('👁️ Showing all layers');
     Object.keys(this.layers).forEach(type => {
       this.layers[type].visible = true;
-      if (this.layers[type].svg) this.layers[type].svg.style.display = 'block';
-      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => btn.classList.add('active'));
+      if (this.layers[type].svg) {
+        this.layers[type].svg.style.display = 'block';
+      }
+      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => {
+        btn.classList.add('active');
+      });
     });
     this.drawCurrentScene();
   },
 
+  // إخفاء كل الطبقات
   hideAllLayers: function() {
+    console.log('👁️ Hiding all layers');
     Object.keys(this.layers).forEach(type => {
       this.layers[type].visible = false;
-      if (this.layers[type].svg) this.layers[type].svg.style.display = 'none';
-      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => btn.classList.remove('active'));
+      if (this.layers[type].svg) {
+        this.layers[type].svg.style.display = 'none';
+      }
+      document.querySelectorAll(`.bim-btn[data-layer="${type}"]`).forEach(btn => {
+        btn.classList.remove('active');
+      });
     });
   },
 
+  // إعادة تحميل البيانات
   reloadData: function() {
     console.log('🔄 Reloading hotspot data...');
     Object.keys(this.layers).forEach(type => {
@@ -418,8 +434,9 @@ const BIM = {
     });
     this.loadHotspotsFromData();
     this.drawCurrentScene();
+    this.showAllLayers(); // تأكيد إظهار كل الطبقات بعد إعادة التحميل
   }
 };
 
 window.BIM = BIM;
-console.log('📦 BIM System loaded and ready');
+console.log('📦 BIM System loaded and ready - FIXED MODE');
