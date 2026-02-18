@@ -1,21 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar">
 <head>
-  <title>Project Title - Virtual Tour BIM</title>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
+  <title>Virtual Tour BIM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-  <!-- مهم: Marzipano لا يحب target-densitydpi -->
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
+  <!-- Reset + CSS الجولة -->
   <link rel="stylesheet" href="vendor/reset.min.css">
   <link rel="stylesheet" href="style.css">
 
-  <!-- CSS خاص بالـ BIM (لوحات – أزرار – ألوان) -->
+  <!-- CSS خاص بالـ BIM -->
   <link rel="stylesheet" href="css/bim-style.css">
 
   <style>
-    /* Overlay الوحيد المسموح */
+    /* Overlay واحد فقط */
     #bim-overlay {
       position: absolute;
       top: 0;
@@ -33,7 +31,7 @@
   <!-- مشهد Marzipano -->
   <div id="pano"></div>
 
-  <!-- Overlay واحد فقط (سيُنشأ SVG داخله من JS) -->
+  <!-- Overlay واحد فقط (SVG سيُنشأ داخله من JS) -->
   <div id="bim-overlay"></div>
 
   <!-- لوحة معلومات BIM -->
@@ -48,24 +46,12 @@
   <!-- قائمة المشاهد -->
   <div id="sceneList">
     <ul class="scenes">
-      <a href="javascript:void(0)" class="scene" data-id="0-startpoint">
-        <li class="text">StartPoint</li>
-      </a>
-      <a href="javascript:void(0)" class="scene" data-id="1-couartyard">
-        <li class="text">Courtyard</li>
-      </a>
-      <a href="javascript:void(0)" class="scene" data-id="2-groundhall">
-        <li class="text">GroundHall</li>
-      </a>
-      <a href="javascript:void(0)" class="scene" data-id="3-groundkichin">
-        <li class="text">GroundKitchen</li>
-      </a>
-      <a href="javascript:void(0)" class="scene" data-id="4-corridorground">
-        <li class="text">CorridorGround</li>
-      </a>
-      <a href="javascript:void(0)" class="scene" data-id="5-livingroom">
-        <li class="text">LivingRoom</li>
-      </a>
+      <a href="javascript:void(0)" class="scene" data-id="0-startpoint"><li class="text">StartPoint</li></a>
+      <a href="javascript:void(0)" class="scene" data-id="1-courtyard"><li class="text">Courtyard</li></a>
+      <a href="javascript:void(0)" class="scene" data-id="2-groundhall"><li class="text">GroundHall</li></a>
+      <a href="javascript:void(0)" class="scene" data-id="3-groundkitchen"><li class="text">GroundKitchen</li></a>
+      <a href="javascript:void(0)" class="scene" data-id="4-corridorground"><li class="text">CorridorGround</li></a>
+      <a href="javascript:void(0)" class="scene" data-id="5-livingroom"><li class="text">LivingRoom</li></a>
     </ul>
   </div>
 
@@ -74,7 +60,7 @@
     <h1 class="sceneName"></h1>
   </div>
 
-  <!-- أدوات التحكم -->
+  <!-- أدوات التحكم (fullscreen + autorotate + sceneList) -->
   <a href="javascript:void(0)" id="autorotateToggle">
     <img class="icon off" src="img/play.png">
     <img class="icon on" src="img/pause.png">
@@ -90,27 +76,15 @@
     <img class="icon on" src="img/collapse.png">
   </a>
 
-  <!-- أزرار الحركة -->
-  <a href="javascript:void(0)" id="viewUp" class="viewControlButton viewControlButton-1">
-    <img class="icon" src="img/up.png">
-  </a>
-  <a href="javascript:void(0)" id="viewDown" class="viewControlButton viewControlButton-2">
-    <img class="icon" src="img/down.png">
-  </a>
-  <a href="javascript:void(0)" id="viewLeft" class="viewControlButton viewControlButton-3">
-    <img class="icon" src="img/left.png">
-  </a>
-  <a href="javascript:void(0)" id="viewRight" class="viewControlButton viewControlButton-4">
-    <img class="icon" src="img/right.png">
-  </a>
-  <a href="javascript:void(0)" id="viewIn" class="viewControlButton viewControlButton-5">
-    <img class="icon" src="img/plus.png">
-  </a>
-  <a href="javascript:void(0)" id="viewOut" class="viewControlButton viewControlButton-6">
-    <img class="icon" src="img/minus.png">
-  </a>
+  <!-- أزرار التحكم في المشهد -->
+  <a href="javascript:void(0)" id="viewUp" class="viewControlButton viewControlButton-1"><img class="icon" src="img/up.png"></a>
+  <a href="javascript:void(0)" id="viewDown" class="viewControlButton viewControlButton-2"><img class="icon" src="img/down.png"></a>
+  <a href="javascript:void(0)" id="viewLeft" class="viewControlButton viewControlButton-3"><img class="icon" src="img/left.png"></a>
+  <a href="javascript:void(0)" id="viewRight" class="viewControlButton viewControlButton-4"><img class="icon" src="img/right.png"></a>
+  <a href="javascript:void(0)" id="viewIn" class="viewControlButton viewControlButton-5"><img class="icon" src="img/plus.png"></a>
+  <a href="javascript:void(0)" id="viewOut" class="viewControlButton viewControlButton-6"><img class="icon" src="img/minus.png"></a>
 
-  <!-- أزرار التحكم بالأنظمة (منطقية فقط – لا SVG هنا) -->
+  <!-- أزرار التحكم بالأنظمة (BIM Layers) -->
   <div id="bim-controls">
     <button class="bim-btn active" data-layer="EL">⚡ كهرباء</button>
     <button class="bim-btn active" data-layer="PW">💧 مياه</button>
@@ -118,15 +92,15 @@
     <button class="bim-btn active" data-layer="AC">❄️ تكييف</button>
   </div>
 
-  <!-- مكتبات -->
+  <!-- مكتبات JS -->
   <script src="vendor/screenfull.min.js"></script>
   <script src="vendor/bowser.min.js"></script>
   <script src="vendor/marzipano.js"></script>
 
-  <!-- قلب النظام (ملف واحد فقط) -->
+  <!-- Core نظام BIM -->
   <script src="layers/bim-core.js"></script>
 
-  <!-- ملفات الجولة الأصلية -->
+  <!-- ملفات الجولة -->
   <script src="data.js"></script>
   <script src="index.js"></script>
 
