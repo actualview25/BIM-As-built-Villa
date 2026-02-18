@@ -1,6 +1,6 @@
 /* css/bim-style.css - أنماط نظام BIM */
 
-/* طبقات BIM */
+/* ========== الطبقات الأساسية ========== */
 #bim-overlay {
   position: absolute;
   top: 0;
@@ -20,45 +20,109 @@
   pointer-events: none;
 }
 
-/* عناصر BIM */
-#bim-overlay circle {
+/* ========== العناصر الثابتة ========== */
+.fixed-point {
+  transition: r 0.2s, filter 0.2s;
   pointer-events: auto;
   cursor: pointer;
-  transition: r 0.2s, filter 0.2s;
 }
 
-#bim-overlay circle:hover {
-  filter: drop-shadow(0 0 8px yellow);
-  r: 12;
+.fixed-point:hover {
+  r: 16;
+  filter: drop-shadow(0 0 10px gold);
 }
 
-#bim-overlay line {
+.fixed-line {
   transition: stroke-width 0.2s;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
-#bim-overlay line:hover {
-  stroke-width: 5;
+.fixed-line:hover {
+  stroke-width: 6;
+  filter: drop-shadow(0 0 8px white);
 }
 
-/* لوحة المعلومات */
+/* تسميات النقاط */
+#bim-overlay text {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 12px;
+  fill: white;
+  stroke: black;
+  stroke-width: 0.5;
+  paint-order: stroke;
+  pointer-events: none;
+  user-select: none;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  dominant-baseline: middle;
+  text-anchor: start;
+}
+
+/* ========== ألوان الطبقات ========== */
+.EL-path, .EL-line, [class*="EL"] {
+  stroke: #44ff44;
+}
+
+.PW-path, .PW-line, [class*="PW"] {
+  stroke: #4444ff;
+}
+
+.GS-path, .GS-line, [class*="GS"] {
+  stroke: #ff4444;
+}
+
+.AC-path, .AC-line, [class*="AC"] {
+  stroke: #ffaa44;
+}
+
+/* أنماط الخطوط */
+.fixed-line {
+  stroke-width: 4;
+  fill: none;
+}
+
+.fixed-line.EL-line {
+  stroke-dasharray: 8,8;
+}
+
+.fixed-line.PW-line {
+  stroke-dasharray: none;
+}
+
+.fixed-line.GS-line {
+  stroke-dasharray: 4,4;
+}
+
+.fixed-line.AC-line {
+  stroke-dasharray: 12,6;
+}
+
+/* أنماط النقاط */
+.fixed-point {
+  stroke: white;
+  stroke-width: 2;
+}
+
+/* ========== لوحة المعلومات ========== */
 #bim-info-panel {
   position: fixed;
   bottom: 100px;
   right: 20px;
-  width: 300px;
-  background: rgba(20, 20, 30, 0.95);
+  width: 320px;
+  background: rgba(20, 20, 30, 0.98);
   backdrop-filter: blur(10px);
   color: white;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 0;
   z-index: 1000;
   border: 1px solid #444;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
   transform: translateY(20px);
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   direction: rtl;
+  font-family: 'Segoe UI', Arial, sans-serif;
 }
 
 #bim-info-panel.visible {
@@ -71,136 +135,262 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
+  padding: 16px 20px;
   border-bottom: 2px solid #00ff00;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px 12px 0 0;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 16px 16px 0 0;
 }
 
 #bim-panel-title {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 18px;
   color: #00ff00;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
 }
 
 #bim-panel-header button {
   background: none;
   border: none;
   color: #999;
-  font-size: 20px;
+  font-size: 24px;
   cursor: pointer;
-  padding: 0 5px;
+  padding: 0 8px;
+  transition: color 0.2s;
+  line-height: 1;
 }
 
 #bim-panel-header button:hover {
   color: white;
+  transform: scale(1.1);
 }
 
 #bim-panel-content {
   padding: 20px;
-  max-height: 300px;
+  max-height: 350px;
   overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
-/* أزرار التحكم في BIM */
+#bim-panel-content p {
+  margin: 12px 0;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border-right: 3px solid #00ff00;
+}
+
+#bim-panel-content strong {
+  color: #00ff00;
+  margin-left: 8px;
+}
+
+/* ========== أزرار التحكم في BIM ========== */
 #bim-controls {
   position: fixed;
-  bottom: 20px;
+  bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 10px;
+  gap: 12px;
   z-index: 1000;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.85);
   padding: 12px 24px;
   border-radius: 60px;
   backdrop-filter: blur(10px);
-  border: 1px solid #444;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
   direction: rtl;
 }
 
 .bim-btn {
-  padding: 8px 20px;
+  padding: 10px 22px;
   border: none;
   border-radius: 40px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   color: white;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 600;
   font-size: 14px;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   border: 2px solid transparent;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
+  letter-spacing: 0.5px;
 }
 
 .bim-btn.active {
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 15px currentColor;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 20px currentColor;
+  transform: scale(1.05);
 }
 
 .bim-btn:hover {
-  transform: scale(1.05);
-  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.08);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .bim-icon {
-  font-size: 16px;
+  font-size: 18px;
 }
 
-/* تنسيق للموبايل */
+/* ألوان الأزرار عند التفعيل */
+.bim-btn[data-layer="EL"].active {
+  border-color: #44ff44;
+  text-shadow: 0 0 8px #44ff44;
+}
+
+.bim-btn[data-layer="PW"].active {
+  border-color: #4444ff;
+  text-shadow: 0 0 8px #4444ff;
+}
+
+.bim-btn[data-layer="GS"].active {
+  border-color: #ff4444;
+  text-shadow: 0 0 8px #ff4444;
+}
+
+.bim-btn[data-layer="AC"].active {
+  border-color: #ffaa44;
+  text-shadow: 0 0 8px #ffaa44;
+}
+
+/* ========== تنسيقات إضافية ========== */
+
+/* تأثير وميض للمصادر */
+.fixed-point[data-type="source"] {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { filter: drop-shadow(0 0 2px currentColor); }
+  50% { filter: drop-shadow(0 0 12px currentColor); }
+  100% { filter: drop-shadow(0 0 2px currentColor); }
+}
+
+/* تنسيق شريط التمرير في لوحة المعلومات */
+#bim-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+#bim-panel-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+#bim-panel-content::-webkit-scrollbar-thumb {
+  background: #00ff00;
+  border-radius: 3px;
+}
+
+#bim-panel-content::-webkit-scrollbar-thumb:hover {
+  background: #00cc00;
+}
+
+/* ========== تنسيق للموبايل ========== */
 @media (max-width: 768px) {
   #bim-controls {
     flex-wrap: wrap;
-    width: 90%;
-    border-radius: 20px;
-    padding: 10px;
-    bottom: 10px;
+    width: 92%;
+    border-radius: 30px;
+    padding: 12px;
+    bottom: 15px;
+    gap: 8px;
   }
   
   .bim-btn {
     flex: 1;
-    padding: 6px 10px;
+    padding: 8px 12px;
     font-size: 12px;
+    justify-content: center;
+    min-width: 70px;
   }
   
   #bim-info-panel {
-    width: calc(100% - 40px);
-    bottom: 80px;
+    width: calc(100% - 30px);
+    bottom: 90px;
+    right: 15px;
+    left: 15px;
+  }
+  
+  .bim-icon {
+    font-size: 16px;
+  }
+  
+  #bim-overlay text {
+    font-size: 10px;
+  }
+  
+  .fixed-point {
+    r: 8;
+  }
+  
+  .fixed-point:hover {
+    r: 12;
   }
 }
 
-/* أنماط الطبقات */
-.EL-path { stroke: #44ff44; }
-.PW-path { stroke: #4444ff; }
-.GS-path { stroke: #ff4444; }
-.AC-path { stroke: #ffaa44; }
-
-
-/* أنماط العناصر الثابتة */
-.fixed-point {
-  transition: r 0.2s, filter 0.2s;
+/* ========== تنسيقات للشاشات الصغيرة جداً ========== */
+@media (max-width: 480px) {
+  #bim-controls {
+    padding: 8px;
+  }
+  
+  .bim-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  
+  .bim-icon {
+    font-size: 14px;
+  }
+  
+  #bim-panel-title {
+    font-size: 16px;
+  }
+  
+  #bim-panel-content {
+    padding: 15px;
+    font-size: 13px;
+  }
 }
 
-.fixed-point:hover {
-  r: 16;
-  filter: drop-shadow(0 0 10px gold);
-}
+/* ========== تأثيرات إضافية ========== */
 
+/* خطوط الشبكة */
 .fixed-line {
-  transition: stroke-width 0.2s;
+  vector-effect: non-scaling-stroke;
 }
 
-.fixed-line:hover {
-  stroke-width: 6;
+/* نقاط نهاية معتمة قليلاً */
+.fixed-point[data-type="endpoint"] {
+  opacity: 0.9;
 }
 
-/* تسميات النقاط */
-#bim-overlay text {
-  font-family: Arial, sans-serif;
+/* نقاط التوزيع بحدود منقطة */
+.fixed-point[data-type="junction"] {
+  stroke-dasharray: 3,2;
+}
+
+/* تلميحات الأدوات */
+.bim-btn[title] {
+  position: relative;
+}
+
+.bim-btn[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  margin-bottom: 8px;
+  border: 1px solid #00ff00;
   pointer-events: none;
-  user-select: none;
-  text-shadow: 1px 1px 2px black;
 }
