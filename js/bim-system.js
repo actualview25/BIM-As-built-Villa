@@ -21,7 +21,19 @@ const BIM = {
     console.log('✅ BIM System initialized');
     return this;
   },
-
+// دالة اختبار لرسم نقاط تجريبية
+testDraw: function() {
+  console.log('🧪 Testing draw with sample points');
+  
+  // نقاط تجريبية
+  const testPoints = [
+    { id: 'EL-SEN-TEST', yaw: 0, pitch: 0, sceneId: this.currentScene?.data.id },
+    { id: 'END-EL-TEST', yaw: 0.5, pitch: 0.2, sceneId: this.currentScene?.data.id }
+  ];
+  
+  this.layers['EL'].points = testPoints;
+  this.drawCurrentScene();
+},
   // إنشاء طبقات SVG
   createSVGLayers: function() {
     const overlay = document.getElementById('bim-overlay');
