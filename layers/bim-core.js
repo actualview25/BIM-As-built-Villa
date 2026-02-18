@@ -1,75 +1,162 @@
-class BIMSystem {
-  constructor() {
-    this.nodes = [];         // كل الـ nodes من كل الأنظمة
-    this.layers = {};        // عناصر DOM لكل طبقة
-    this.systems = {};       // الأنظمة الفرعية: EL, GS, AC, PW
+// ================================
+// bim-core.js - النسخة الجاهزة
+// ================================
+
+// الحصول على overlay
+const overlay = document.getElementById('bim-overlay');
+
+// ================================
+// تعريف الأنظمة
+// ================================
+class ElectricalSystem {
+  constructor(svgLayer) {
+    this.svgLayer = svgLayer;
+    this.group = this.createGroup('electric');
   }
 
-  // تهيئة الأنظمة وربط الـ DOM
-  init() {
-    // ربط الأنظمة الفرعية
-    this.systems = {
-      EL: new ElectricalSystem(this),
-      GS: new GasSystem(this),
-      AC: new HVACSystem(this),
-      PW: new PlumbingSystem(this)
-    };
-
-    // التأكد من وجود div لكل طبقة
-    Object.keys(this.systems).forEach(type => {
-      const layer = document.querySelector(`#layer-${type}`);
-      if (!layer) {
-        console.warn(`Layer DOM for ${type} not found!`);
-        return;
-      }
-      this.layers[type] = layer;
-
-      // إضافة SVG داخل كل div إذا لم يكن موجود
-      let svg = layer.querySelector('svg');
-      if (!svg) {
-        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('width', '100%');
-        svg.setAttribute('height', '100%');
-        layer.appendChild(svg);
-      }
-
-      // رسم كل nodes الموجودة في النظام
-      if (this.systems[type].nodes) {
-        this.systems[type].nodes.forEach(node => {
-          this.systems[type].drawSpecial(node, svg, node.x, node.y);
-        });
-      }
-    });
+  createGroup(id) {
+    let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute('id', id);
+    svgLayer.appendChild(g);
+    return g;
   }
 
-  // تبديل الطبقة المرئية
-  showLayer(type) {
-    Object.keys(this.layers).forEach(t => {
-      this.layers[t].style.display = t === type ? 'block' : 'none';
-    });
+  draw() {
+    // مثال رسم خط كهرباء
+    let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute('x1', 100);
+    line.setAttribute('y1', 100);
+    line.setAttribute('x2', 300);
+    line.setAttribute('y2', 100);
+    line.setAttribute('stroke', 'yellow');
+    line.setAttribute('stroke-width', 3);
+    this.group.appendChild(line);
   }
 
-  // تحديث جميع الـ Hotspots في الطبقات الظاهرة
-  update() {
-    Object.keys(this.systems).forEach(type => {
-      const layer = this.layers[type];
-      if (!layer || layer.style.display === 'none') return;
-
-      const svg = layer.querySelector('svg');
-      // مسح الرموز القديمة
-      svg.querySelectorAll('text, circle, path').forEach(el => el.remove());
-
-      // رسم جميع nodes الحالية
-      this.systems[type].nodes.forEach(node => {
-        this.systems[type].drawSpecial(node, svg, node.x, node.y);
-      });
-    });
-  }
+  show() { this.group.style.display = 'block'; }
+  hide() { this.group.style.display = 'none'; }
 }
 
-// تهيئة النظام
-const BIM = new BIMSystem();
-BIM.init();
+class PlumbingSystem {
+  constructor(svgLayer) {
+    this.svgLayer = svgLayer;
+    this.group = this.createGroup('plumbing');
+  }
 
-// مثال لتبديل الطبقة إلى الكهرباء
-// BIM.showLayer('EL');
+  createGroup(id) {
+    let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute('id', id);
+    svgLayer.appendChild(g);
+    return g;
+  }
+
+  draw() {
+    // مثال رسم خط مياه
+    let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute('x1', 100);
+    line.setAttribute('y1', 150);
+    line.setAttribute('x2', 300);
+    line.setAttribute('y2', 150);
+    line.setAttribute('stroke', 'blue');
+    line.setAttribute('stroke-width', 3);
+    this.group.appendChild(line);
+  }
+
+  show() { this.group.style.display = 'block'; }
+  hide() { this.group.style.display = 'none'; }
+}
+
+class GasSystem {
+  constructor(svgLayer) {
+    this.svgLayer = svgLayer;
+    this.group = this.createGroup('gas');
+  }
+
+  createGroup(id) {
+    let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute('id', id);
+    svgLayer.appendChild(g);
+    return g;
+  }
+
+  draw() {
+    // مثال رسم خط غاز
+    let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute('x1', 100);
+    line.setAttribute('y1', 200);
+    line.setAttribute('x2', 300);
+    line.setAttribute('y2', 200);
+    line.setAttribute('stroke', 'red');
+    line.setAttribute('stroke-width', 3);
+    this.group.appendChild(line);
+  }
+
+  show() { this.group.style.display = 'block'; }
+  hide() { this.group.style.display = 'none'; }
+}
+
+class ACSystem {
+  constructor(svgLayer) {
+    this.svgLayer = svgLayer;
+    this.group = this.createGroup('ac');
+  }
+
+  createGroup(id) {
+    let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute('id', id);
+    svgLayer.appendChild(g);
+    return g;
+  }
+
+  draw() {
+    // مثال رسم خط تكييف
+    let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute('x1', 100);
+    line.setAttribute('y1', 250);
+    line.setAttribute('x2', 300);
+    line.setAttribute('y2', 250);
+    line.setAttribute('stroke', 'cyan');
+    line.setAttribute('stroke-width', 3);
+    this.group.appendChild(line);
+  }
+
+  show() { this.group.style.display = 'block'; }
+  hide() { this.group.style.display = 'none'; }
+}
+
+// ================================
+// تهيئة كل الأنظمة
+// ================================
+const electrical = new ElectricalSystem(overlay);
+const plumbing   = new PlumbingSystem(overlay);
+const gas        = new GasSystem(overlay);
+const ac         = new ACSystem(overlay);
+
+// رسم خطوط تجريبية لكل نظام
+electrical.draw();
+plumbing.draw();
+gas.draw();
+ac.draw();
+
+// إخفاء كل الأنظمة كبداية
+electrical.hide();
+plumbing.hide();
+gas.hide();
+ac.hide();
+
+// ================================
+// ربط أزرار التحكم
+// ================================
+document.querySelectorAll('#bim-controls .bim-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const layer = btn.dataset.layer;
+    btn.classList.toggle('active');
+
+    switch(layer) {
+      case 'EL': btn.classList.contains('active') ? electrical.show() : electrical.hide(); break;
+      case 'PW': btn.classList.contains('active') ? plumbing.show() : plumbing.hide(); break;
+      case 'GS': btn.classList.contains('active') ? gas.show() : gas.hide(); break;
+      case 'AC': btn.classList.contains('active') ? ac.show() : ac.hide(); break;
+    }
+  });
+});
